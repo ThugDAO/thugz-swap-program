@@ -1,0 +1,43 @@
+# secrets — never tracked
+.env
+.env.*
+!.env.example
+arweave_upload/jwk.json
+turbo_sol.json
+gacha/
+
+# local tooling / caches
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+.gstack/
+.wrangler/
+thugbirdz_com_backup.zip
+
+# ---- local working material; canonical homes are other repos ----
+# ThugDAO/thugbirdz-recovery (campaign archive):
+recovered/*
+!recovered/remint/
+recovered/remint/*
+!recovered/remint/claim_map_all.json
+arweave_upload/
+HANDOFF.md
+MAINNET_RUNBOOK.md
+UA_TRANSFER_GUIDE.md
+ROADMAP.md
+GAMES.md
+WEBSITE_PROJECT.md
+mb-cache-migrate.json
+helius_recover.py
+me_recover.py
+package_collection.py
+save_image.py
+crossfill.py
+build_mcc_scope.py
+build_remint_manifest.py
+# ThugDAO/thugbirdz (website):
+website_build/
+website_scrape/
+flappybird/
