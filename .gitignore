@@ -41,3 +41,6 @@ build_remint_manifest.py
 website_build/
 website_scrape/
 flappybird/
+
+# local tool state
+.context/
