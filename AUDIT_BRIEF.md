@@ -44,7 +44,7 @@ isn't. If you'd rather not be named, say so and it becomes "three independent re
 |---|---|
 | Source | `ThugDAO/thugz-swap-v2`, branch under review |
 | Spec | `SWAP_SPEC.md` — accounts, instructions, invariants, failure matrix |
-| Sequence | `IMPLEMENTATION_PLAN.md` — 14 phases, gates, reversibility map |
+| Sequence | `IMPLEMENTATION_PLAN.md` — phases 0–13 plus 3b, gates, reversibility map |
 | Tests | `TEST_PLAN.md` — six levels, plus the suite itself |
 | Live | Devnet deployment with 1,274 mock pairs, seeded and sealed |
 | History | `SWAP_PLAN_REVIEW.md` and PR #1 comments — three prior review passes |

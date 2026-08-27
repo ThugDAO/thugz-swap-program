@@ -80,9 +80,10 @@ ago, in a place we cannot edit.
 |---|---|---|
 | `admin` | Pubkey | Deposits, pause, post-unlock recovery. Cannot take a bird before unlock. |
 | `collection` | Pubkey | Parent collection of the remints. |
-| `expected` | u16 | `1274`. Set at init, never changes. |
+| `expected` | u16 | `1274`, from the compiled-in `EXPECTED` constant. Never from instruction data; never changes. |
 | `deposited` | u16 | Incremented by `deposit_bird`. |
 | `swapped` | u16 | Incremented by `swap`. |
+| `recovered` | u16 | Incremented by `recover`. Vault reconciliation: remints in vault `== expected - swapped - recovered`. |
 | `sealed` | bool | False until the set is complete and verified. Gates swapping. |
 | `paused` | bool | Admin safety valve. Stops swaps only. |
 | `unlock_ts` | i64 | Unix seconds, **opening + 2 years**. Before it, nothing leaves except by a valid swap. Immutable. |
@@ -134,7 +135,7 @@ accounts are ordinary ATAs owned by that PDA.
 
 | Instruction | Signer | Effect |
 |---|---|---|
-| `initialize_pool` | admin | Creates Pool. Sets `expected`, `unlock_ts`, `collection`. `sealed = false`. |
+| `initialize_pool` | admin | Creates Pool. `expected` is set from the compiled-in `EXPECTED` constant (1274) — **not** from instruction data, so a typo cannot become permanent. Takes `unlock_ts`, `collection`. `sealed = false`. |
 | `deposit_bird` | admin **+ token owner (HxwZ)** | Moves one remint into the vault **and** creates its Mapping in the same transaction. Fails if sealed. |
 | `fix_mapping` | admin | **Only while `!sealed`.** Closes a Mapping, returns rent to the **treasury**, decrements `deposited`, and returns the remint **to HxwZ's ATA — never to admin**. The one way to correct a bad deposit. |
 | `seal` | admin | One-way. Requires `deposited == expected`. After this no Mapping can be created or altered. |
@@ -185,6 +186,9 @@ require!(!pool.sealed, Sealed);
 let new_mint = source_ata.mint;
 require!(source_ata.amount == 1, NotHeld);
 require!(source_ata.owner == CUSTODIAN, NotCustodian);  // deposits only ever come from HxwZ
+// The transfer authority is the OWNER itself, signing — never a delegate. Without this,
+// "HxwZ co-signs" is prose, not a constraint.
+require!(token_authority.key() == CUSTODIAN && token_authority.is_signer, NotCustodian);
 
 // Mapping is init-once. No update path exists anywhere in the program.
 // init must ABSORB a pre-sent lamport balance rather than aborting (see griefing).
@@ -288,6 +292,16 @@ rather than convenient.
 The alternative, equally valid, is requiring HxwZ as a co-signer on `fix_mapping`. Either
 closes it; the destination version needs no extra signature at correction time.
 
+**One edge the destination rule inherits: a frozen destination ATA.** `create_idempotent`
+does not thaw an existing frozen account, and `transfer_checked` into one fails — which
+would strand `fix_mapping` (and `recover`) for that bird. Every Metaplex NFT carries a
+freeze authority — the mint's own master edition PDA — and that shape is safe: only Token
+Metadata's delegate paths can freeze through it, and those need the destination owner's own
+delegation, which HxwZ never grants. What must not exist is a **foreign** freeze key, so
+the pre-flight asserts every remint's freeze authority is exactly its own master edition
+PDA. The devnet suite still exercises the failure (mock mints where you hold freeze
+authority) so the error is legible if the assumption is ever wrong.
+
 ### 4b. `recover` — constraints, not prose
 
 "Moves unclaimed remints out" is not an invariant; without explicit checks it can be
@@ -300,6 +314,9 @@ require!(vault_ata.mint == mapping.new_mint,     NotRecoverable);
 require!(vault_ata.amount == 1,                  NotHeld);
 require!(vault_ata.owner == vault_pda,           NotRecoverable);
 ```
+
+`recover` also increments `pool.recovered`, so the Level 6 vault reconciliation stays true
+after unlock.
 
 **Destination: the custodian's ATA, `ata(CUSTODIAN, new_mint)` — same rule as `fix_mapping`.**
 Admin triggers recovery; admin never receives the token. Disposal of recovered birds is a
@@ -374,7 +391,7 @@ logs, and reconciling `pool.swapped` against reality becomes guesswork.
 #[event] pub struct PoolSealed    { expected, ts }
 #[event] pub struct BirdSwapped   { old_mint, new_mint, holder, ts, swapped }
 #[event] pub struct PauseSet      { paused, ts }
-#[event] pub struct BirdRecovered { new_mint, ts }
+#[event] pub struct BirdRecovered { new_mint, ts, recovered }
 ```
 
 `BirdSwapped` is the one the desk actually runs on. Full field types in the appendix.
@@ -435,17 +452,24 @@ nice-to-haves.
 3. Every `new_mint` appears exactly once across all mappings (injective — no two originals
    pointing at one remint).
 4. Every `new_mint`'s vault ATA actually holds that NFT, amount 1.
-5. The set of `new_mint`s equals, exactly, the chain-derived membership of the verified
-   collection `5Kwhy…` (DAS `getAssetsByGroup`, minus the parent): 1,274 of 1,274, no
-   extras, no gaps. This anchors *which* remints are in play to a set the claim map cannot
-   define — a dropped-and-substituted pair fails here even when everything else is
-   self-consistent.
+5. The set of `new_mint`s equals, exactly, the 1,274 remints among the chain-derived
+   membership of the verified collection `5Kwhy…` (DAS `getAssetsByGroup`; the collection
+   also holds the ~2,024 migrated entangled originals and the parent — filter to the remint
+   set). This anchors *which* remints are in play — a dropped-and-substituted pair fails
+   here even when everything else is self-consistent. **This anchor is downstream of
+   Phase 8**, which creates the membership from the claim map itself; it is independent
+   only because Phase 8 is gated on the pre-flight (checks 6–7) passing first.
 6. Every remint's Arweave `provenance.original_mint` equals the claim map's `old_mint`
    (appendix §9), fetched from a strict `https://arweave.net/<txid>` URI.
-7. Every remint's on-chain `name` equals its original's on-chain `name`. Both predate this
-   program — the original's name has been immutable since 2021 — so a pairing that was wrong
-   *at remint time*, where tag and claim map are wrong together and the Arweave check cannot
-   see it, disagrees here.
+7. Every remint's on-chain `name` equals its original's on-chain `name` **and** the `name`
+   inside the remint's Arweave metadata JSON. The on-chain names alone are not a fully
+   independent witness — the remints are mutable and HxwZ is their update authority, and
+   ~300 of the originals are technically mutable under an authority nobody has accessed —
+   but the Arweave copy of the name was frozen at mint and binds the check: a rewritten
+   on-chain name disagrees with its own Arweave metadata. A pairing that was wrong *at
+   remint time*, where tag and claim map are wrong together and the provenance check cannot
+   see it, disagrees here. The sweep also records each remint's `is_mutable` and update
+   authority alongside the report.
 
 Any mismatch is a hard stop, not a retry-later. Publish the sweep report; that report plus
 `seal` is the real commitment to the set, and it is what replaces a merkle root.
@@ -508,28 +532,35 @@ they don't need.
 
 ## 8. Setup sequence
 
+> **`IMPLEMENTATION_PLAN.md` is authoritative on sequence and gates.** This table is the
+> summary; where the two disagree, the plan wins. (An earlier version of this table
+> pre-dated the external-review gate and merged deploy with init — a builder following it
+> could have initialized before review. That ordering bug is why this note exists.)
+
 | # | Step | Done when |
 |---|---|---|
 | 1 | Grind program ID, pin toolchain, write program | `declare_id!` matches deploy key; `rust-toolchain.toml` + `Anchor.toml` frozen |
-| 2 | Devnet: full test matrix | Every row above passes |
-| 3 | HxwZ verifies all 1,274 into the collection | Parent size includes the vault set. **HxwZ still holds the tokens** |
-| 4 | Deploy mainnet, `initialize_pool`, **system-transfer 5.5 SOL to the treasury address** | `expected=1274`, `sealed=false`, treasury ≥4.46 SOL and still system-owned with zero data |
-| 5 | Deposit all 1,274 — **319 txs at 4 per tx**, HxwZ co-signs as token owner | `deposited == 1274` |
-| 6 | Three-way injective sweep (§6b) | Every pair verified against the claim map. Mismatch is a hard stop |
-| 7 | `seal` | Irreversible. Only now can anything swap |
-| 8 | Pilot swaps on team wallets, desk not yet announced | Right bird out, `claimed` set, second attempt reverts |
-| 9 | Open the desk | Copy matches the program: one signature, SOL dust, one-way |
-| 10 | After 20 swaps + 30 quiet days, revisit upgrade authority — burn, Squads, or extend | Decision published |
+| 2 | Devnet test matrix + full-scale Surfpool rehearsal | Every row passes; the deliberately planted bad pair is caught and corrected |
+| 3 | **Three external reviews submitted, all findings closed** | Gates everything irreversible below (plan Phase 5) |
+| 4 | Deploy mainnet + verified build. **Do not initialize yet** | Bytecode independently reproducible |
+| 5 | `initialize_pool`, then **system-transfer 5.5 SOL to the treasury address** | `expected=1274`, `sealed=false`, treasury ≥4.46 SOL and still system-owned with zero data |
+| 6 | Pre-flight re-run, then HxwZ verifies all 1,274 into the collection | Verify list drawn from the just-verified claim map (§6b). **HxwZ still holds the tokens** |
+| 7 | Deposit all 1,274 — **319 txs at 4 per tx**, HxwZ co-signs as token owner | `deposited == 1274` |
+| 8 | Three-way injective sweep (§6b) | Every pair verified against the claim map. Mismatch is a hard stop |
+| 9 | `seal` | Irreversible. Only now can anything swap |
+| 10 | Pilot swaps on team wallets, desk not yet announced | Right bird out, `claimed` set, second attempt reverts |
+| 11 | Open the desk | Copy matches the program: one signature, SOL dust, one-way |
+| 12 | After 20 swaps + 30 quiet days, revisit upgrade authority — burn, Squads, or extend | Decision published |
 
 > **HxwZ stays in service.** The operator retains access to the HxwZ key for as long as the
 > desk needs it (decision 2026-08-26). It remains the update authority on the collection
 > parent and all 1,274 remints, and a verified creator on each. One hygiene rule still
-> holds: after step 5 no scheduled job, worker or automation needs an HxwZ signature —
+> holds: after step 7 no scheduled job, worker or automation needs an HxwZ signature —
 > verify-upfront removed the recurring certify sweep that would otherwise have kept an
 > authority key inside an automated job for the desk's whole life. Keep it that way:
 > deposits, corrections and metadata fixes are deliberate, manual signings.
 >
-> **Why HxwZ cannot stop signing at step 3.** All 1,274 remints are owned by HxwZ today.
+> **Why HxwZ cannot stop signing at step 6.** All 1,274 remints are owned by HxwZ today.
 > `deposit_bird` transfers them, and an SPL transfer must be signed by the token's owner, so
 > HxwZ signs every deposit transaction. An earlier draft had it stop after verification,
 > which left no signer able to move the birds and made the rest of this sequence impossible.
@@ -539,7 +570,7 @@ they don't need.
 > Co-signing is strictly cheaper: **64 extra transactions and no extra rent.**
 
 > **The pilot happens after sealing, not before.** An earlier draft of this spec had a
-> 5-bird pilot at step 5, which contradicts invariant 3 and constraint 1. Sealing does not
+> 5-bird pilot inside the deposit window, which contradicts invariant 3 and constraint 1. Sealing does not
 > open the desk — announcing does — so a private pilot on a sealed pool costs nothing and
 > keeps the rule absolute.
 
@@ -617,7 +648,7 @@ actually landed, "you don't have to trust our file" carries real weight here.
 | Collection parent | `5KwhyPToqeGQYmRQjnx3EDSRMnaiCJDMEH3aGT8R3HNc` |
 | Custodian (compiled-in `CUSTODIAN`) | `HxwZCEMgck9v24iP9y2YcBttBkM7GjX77oBiNmQYiiUB` — deposit source; `fix_mapping` and `recover` destination |
 | `expected` | 1274 |
-| Redemption contract | `recovered/remint/claim_map_all.json` |
+| Redemption contract | `recovered/remint/claim_map_all.json` — frozen; note its `_meta.note` ("collection is verified at claim time") predates the verify-upfront decision and is superseded by Phase 8. The pairing data is what is canonical, not the prose around it |
 
 Keypairs live outside this repo in `~/.thugbirdz-keys/swap/`. None are funded or used yet.
 

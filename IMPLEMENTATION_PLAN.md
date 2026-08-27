@@ -239,10 +239,20 @@ toolchain.
 
 ## Phase 8 — Verify the collection
 
-HxwZ verifies all 1,274 remints into the parent collection. HxwZ still holds the tokens.
+**First, re-run the pre-flight** (`verification/preflight_check.py` — the sweep's off-chain
+checks: names, Arweave provenance + tags, freeze authorities) against `claim_map_all.json`,
+and draw the verify list from that just-verified map. This ordering is load-bearing: the
+sweep's collection-membership anchor compares the claim map against collection membership
+that THIS step creates. If this step consumed a corrupted map, the anchor would agree with
+the corruption. Independence comes from the pre-flight's Arweave-anchored checks running
+BEFORE membership exists — not from the membership check alone.
 
-**Gate 8:** all 1,274 return `grouping: [{collection: 5Kwhy…}]` from a fresh DAS query, not
-from the tool's own success output. Parent collection size reflects the addition.
+Then HxwZ verifies all 1,274 remints into the parent collection. HxwZ still holds the
+tokens.
+
+**Gate 8:** pre-flight PASS published, then all 1,274 return `grouping: [{collection:
+5Kwhy…}]` from a fresh DAS query, not from the tool's own success output. Parent collection
+size reflects the addition.
 
 ---
 
@@ -322,7 +332,7 @@ implies "swap before the deadline or lose it" is false and would rush people for
 | Trigger | Action |
 |---|---|
 | 20 successful public swaps + 30 days with no incident | Decide upgrade authority — burn, Squads, or explicitly extend — and publish the decision |
-| Pool balance below watermark | Named person refills |
+| Treasury balance below watermark | Named person refills |
 | Any swap failure that is not delist/no-SOL | Investigate before it repeats |
 | `unlock_ts` reached | Recovery decision, per whatever was agreed in Phase 0 |
 

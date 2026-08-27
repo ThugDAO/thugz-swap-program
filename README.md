@@ -15,7 +15,7 @@ independent external reviews — see `AUDIT_BRIEF.md`.
 | 1 | `FINAL_REVIEW_PLAN.md` | Where the design is weakest, what six review passes found, exit criteria |
 | 2 | `SWAP_SPEC.md` | The specification — accounts, instructions, invariants, failure matrix |
 | 3 | `IMPLEMENTATION_APPENDIX.md` | **Part of the spec; wins where they disagree.** Layouts, seeds, errors, toolchain, sweep script |
-| 4 | `IMPLEMENTATION_PLAN.md` | 14 phases, a gate between each, reversibility map |
+| 4 | `IMPLEMENTATION_PLAN.md` | Phases 0–13 plus 3b, a gate between each, reversibility map |
 | 5 | `TEST_PLAN.md` | Six levels, from LiteSVM units to production monitoring |
 | 6 | `AUDIT_BRIEF.md` | What the three external reviewers are asked to attack |
 | — | `SWAP_PLAN_REVIEW.md` | **Historical.** Contradicts the current spec; kept as review record only |

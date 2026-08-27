@@ -60,7 +60,10 @@ Every row from `SWAP_SPEC.md` §7, each asserting a **specific** error, not just
 | `recover` a claimed mapping | `AlreadyClaimed` |
 | Non-admin calls `deposit_bird` / `seal` / `recover` / `set_paused` / `fix_mapping` | Constraint violation |
 | `deposit_bird` from a source ATA not owned by `CUSTODIAN` | `NotCustodian` |
+| `deposit_bird` signed by a delegate instead of the custodian itself | `NotCustodian` |
 | `fix_mapping` or `recover` with a destination that is not the custodian's ATA | `NotCustodian` |
+| `fix_mapping`/`recover` to an existing **frozen** destination ATA (mock mint with freeze authority) | Fails legibly — unreachable on mainnet without the owner's own delegation; the pre-flight asserts every freeze authority is the mint's own master edition PDA |
+| `initialize_pool` with any way to vary `expected` | Impossible — `expected` comes from the compiled `EXPECTED` constant |
 | Second `initialize_pool` | Already initialized |
 | Second `seal` | Already sealed |
 
@@ -93,7 +96,7 @@ with that check removed.
 | No sequence of instructions makes `sealed` false again | Randomised op sequences, assert monotonic |
 | No sequence lets a Mapping be claimed twice | Randomised, including interleaved swaps |
 | `swapped` never exceeds `deposited` | Invariant checked after every op |
-| Vault never releases a remint whose mapping is unclaimed and unlocked | Assert after every op |
+| A remint leaves the vault only via `swap`, pre-seal `fix_mapping`, or post-unlock `recover` | Assert after every op |
 | A deposited original is never transferable out | Attempt after every op |
 | Sweep logic rejects every corruption class | Inject: missing mapping, wrong new_mint, duplicate new_mint, empty vault ATA, a new_mint outside the verified collection (substituted pair), a mint-time mis-pair (name mismatch), an Arweave fetch that errors (must fail, never skip) |
 
@@ -213,7 +216,7 @@ The scheduled worker (one job, shared with the health checks) watches:
 | Failed swap transactions | Any cause other than delist or insufficient SOL |
 | Frontend availability, both routes | Non-200 |
 | RPC health | Errors or rate limiting |
-| Vault contents | Count of unclaimed remints matches `1274 - swapped` |
+| Vault contents | Remints in the vault match `1274 - swapped - recovered` (all counters on Pool) |
 | Transaction format v1 activation | Gate `txv1aq4pp281K9um3tnPgkfX8UqtFT6wcVW3hNezGLL` becomes present |
 
 > **Why the v1 row is there.** Transaction v1 (SIMD-0385) raises the size limit to 4,096

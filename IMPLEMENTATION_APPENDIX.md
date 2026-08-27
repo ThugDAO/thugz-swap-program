@@ -54,6 +54,7 @@ pub struct Pool {
     pub expected: u16,        //  2
     pub deposited: u16,       //  2
     pub swapped: u16,         //  2
+    pub recovered: u16,       //  2   <- lets monitoring reconcile the vault post-unlock
     pub sealed: bool,         //  1
     pub paused: bool,         //  1
     pub unlock_ts: i64,       //  8
@@ -61,7 +62,7 @@ pub struct Pool {
     pub vault_bump: u8,       //  1   <- used by every PDA-signed CPI
     pub treasury_bump: u8,    //  1   <- rent payer signs with this
 }
-// 8 discriminator + 83 = 91
+// 8 discriminator + 85 = 93
 
 #[account]
 pub struct Mapping {
@@ -110,6 +111,10 @@ pub const TREASURY_SEED: &[u8] = b"treasury";
 // deliberately — an init-time field could be mis-set to admin, which would put admin
 // back in the destination seat. The verified build pins this to the reviewed source.
 pub const CUSTODIAN: Pubkey = pubkey!("HxwZCEMgck9v24iP9y2YcBttBkM7GjX77oBiNmQYiiUB");
+
+// Same reasoning: initialize_pool sets pool.expected from this constant, never from
+// instruction data. A wrong expected is permanent and silently changes seal behavior.
+pub const EXPECTED: u16 = 1274;
 
 // Pool    : [POOL_SEED]
 // Vault   : [VAULT_SEED]
@@ -264,7 +269,7 @@ scraping logs forever.
 #[event] pub struct BirdSwapped   { pub old_mint: Pubkey, pub new_mint: Pubkey,
                                     pub holder: Pubkey, pub ts: i64, pub swapped: u16 }
 #[event] pub struct PauseSet      { pub paused: bool, pub ts: i64 }
-#[event] pub struct BirdRecovered { pub new_mint: Pubkey, pub ts: i64 }
+#[event] pub struct BirdRecovered { pub new_mint: Pubkey, pub ts: i64, pub recovered: u16 }
 ```
 
 `BirdSwapped` is the one the monitoring job actually needs — it gives a swap count that can
@@ -345,7 +350,19 @@ for each new_mint:
     assert  its on-chain metadata uri matches ^https://arweave.net/<txid>$  # immutable host only
     fetch   the Arweave JSON
     assert  json.properties.provenance.original_mint == old_mint
-    assert  remint on-chain name == original on-chain name   # both immutable, both predate this program
+    assert  json.name == remint on-chain name == original on-chain name
+            # the Arweave name is frozen even though on-chain metadata is mutable —
+            # it is what makes the name check independent of the update authority
+    record  remint is_mutable + update_authority           # published with the report
+
+# TAG CHECK — the indexed Original-Mint tag, until now asserted but never verified
+fetch   tags of each metadata tx via arweave graphql (batched — the gateway caps `ids` at 9 per query)
+assert  tag "Original-Mint" == old_mint for every pair
+
+# FREEZE CHECK — a frozen destination ATA would strand fix_mapping/recover
+assert  every remint's freeze authority == its own master edition PDA
+        # the standard Metaplex shape: freezing then requires the destination owner's
+        # own delegation. What must not exist is a foreign freeze key.
 
 emit    a signed report: every pair, every PDA, the pool state, a timestamp
 ```
@@ -383,12 +400,33 @@ bird's. Name and image travel together through both pipelines, so this needs the
 itself to be internally wrong — cover it with a human pass: eyeball a random sample (≥30,
 weighted toward the 733) against the recovered art during the Phase 4 rehearsal.
 
+### What "independent" actually rests on
+
+Two of the sweep's anchors are weaker than they look, and the design must say so:
+
+- **The collection-membership anchor is downstream of Phase 8.** HxwZ creates that
+  membership *from the claim map*, so membership agreeing with the map proves nothing by
+  itself. It is independent only because Phase 8 is gated on the Arweave-anchored
+  pre-flight passing first. Keep that ordering.
+- **On-chain names are rewritable.** The remints are mutable with HxwZ as update
+  authority. The name check binds through the Arweave JSON's `name`, which was frozen at
+  mint — that copy, not the on-chain field, is the witness.
+
+Threat model, stated plainly: these checks defend against pipeline bugs and a corrupted
+claim map, not against a fully malicious custodian — an HxwZ holder can rewrite names,
+verify fake birds into the collection, and already holds every remint outright. That party
+is the operator. The upgrade-authority disclosure in the spec covers the same trust
+position.
+
 Requirements:
 
 - **Reads only.** It must not be able to write anything.
 - **Fails closed.** Any RPC error, Arweave/HTTP error, timeout or malformed response is a
   failure, never a skip — retry transient errors, then stop. A silent skip is the exact
-  failure that killed the 2021 collection.
+  failure that killed the 2021 collection. (Retrying may fetch the same txid through a
+  second gateway — content is txid-addressed, so the bytes are the same record; the
+  arweave.net edge has been seen caching an error page for individual txids. The on-chain
+  URI itself must still be `arweave.net`.)
 - **Independently runnable.** A reviewer should be able to run it against mainnet and get the
   same report without our machine.
 - **Publish the output.** The report plus `seal` is the public commitment to the set — it is

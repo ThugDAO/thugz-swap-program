@@ -14,7 +14,7 @@ program that does not exist yet. This is the last review before Phase 1.
 |---|---|
 | 1 | `SWAP_SPEC.md` — the specification |
 | 2 | `IMPLEMENTATION_APPENDIX.md` — **part of the spec**; wins where they disagree |
-| 3 | `IMPLEMENTATION_PLAN.md` — 14 phases with gates |
+| 3 | `IMPLEMENTATION_PLAN.md` — phases 0–13 plus 3b, with gates |
 | 4 | `TEST_PLAN.md` — six levels |
 | 5 | `AUDIT_BRIEF.md` — what the three external reviewers are being asked |
 | — | `SWAP_PLAN_REVIEW.md` — **HISTORICAL**, contradicts current spec, do not implement from it |
@@ -199,3 +199,37 @@ ATA 0.002039 SOL, 1.86 + 2.60 + 5.20 = 9.66 SOL, 4.46 before deposits, 319 txs a
 255 at 5/tx, watermark ≈ 12 swaps.
 
 **Remaining before Phase 1: the three external reviews, on these updated documents.**
+
+---
+
+## Codex second pass + data verification — 2026-08-27
+
+Codex (fresh session, high effort, 1.0M tokens) reviewed the merged post-final-pass state:
+12 findings, all applied same day. The two P1s were both about sweep *independence*:
+
+1. **The collection-membership anchor was circular** — Phase 8 creates membership from the
+   claim map, so membership agreeing with the map proved nothing. Fixed: Phase 8 is now
+   gated on the Arweave-anchored pre-flight, and the docs say which checks carry the
+   independence (appendix §9 "What independent actually rests on").
+2. **On-chain names are rewritable** (remints mutable, HxwZ is update authority), so the
+   name match now binds through the `name` inside the frozen Arweave JSON, and the sweep
+   records `is_mutable` + update authority.
+
+Also applied: spec §8 sequence rewritten to match the plan (it had omitted the
+external-review gate — a builder following it could have initialized before review), with
+"the plan wins" precedence stated; the `Original-Mint` tag is now actually checked (it had
+only ever been asserted); a freeze-authority assertion closes the frozen-destination-ATA
+edge; `EXPECTED` joins `CUSTODIAN` as a compiled constant so init cannot take a wrong count
+from instruction data; the deposit transfer authority must BE the custodian signing, not a
+delegate; `Pool.recovered` (u16, Pool now 93 bytes) keeps the vault reconciliation true
+after post-unlock recovery; the sixth payer drift ("Pool balance" in the post-launch
+table); the phase count reads "0–13 plus 3b"; two test-plan rows contradicting `recover`
+fixed; the claim map's stale `_meta.note` (claim-time verification) is flagged in §10
+rather than edited — the file stays frozen.
+
+**The data itself was verified against mainnet + Arweave the same day**
+(`verification/preflight_check.py`, report committed alongside): all 1,274 pairs
+structurally sound and injective, every remint present and custodian-held, **zero name
+mismatches across all 1,274** — the phase-2 (733) pipeline gap is now measured, not
+argued — and Arweave provenance confirmed for every pair. The remints are confirmed
+ungrouped (Phase 8 not yet run), matching the plan.
