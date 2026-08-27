@@ -116,6 +116,12 @@ pub const CUSTODIAN: Pubkey = pubkey!("HxwZCEMgck9v24iP9y2YcBttBkM7GjX77oBiNmQYi
 // instruction data. A wrong expected is permanent and silently changes seal behavior.
 pub const EXPECTED: u16 = 1274;
 
+// The initializer must BE this key. The pool seeds are a singleton and the program ID
+// is public before deployment, so an unconstrained initialize_pool is front-runnable —
+// an attacker who initializes first captures the admin seat permanently (the PDA can
+// never be re-derived under another key for this program id).
+pub const ADMIN: Pubkey = pubkey!("thuggjsp7Lz7xQ9DyQs7vGmDbVpsWumkv5TQZKHoLr7");
+
 // Pool    : [POOL_SEED]
 // Vault   : [VAULT_SEED]
 // Treasury: [TREASURY_SEED]        system-owned, no data, pays all rent
@@ -124,6 +130,17 @@ pub const EXPECTED: u16 = 1274;
 
 Store the canonical bump in each account and use the stored bump on every subsequent
 derivation. Never accept a caller-supplied bump.
+
+### The `test-keys` feature
+
+The LiteSVM suite must sign as admin and custodian, and nobody ships those private
+keys. A `test-keys` cargo feature swaps ADMIN/CUSTODIAN for committed fixture keypairs
+(`program/programs/thugz-swap/tests/fixtures/`); every other constant — `EXPECTED`
+included — is identical. **The mainnet artifact is the default-features build**, pinned
+by the Gate 6 verified build, and `program/scripts/verify_mainnet_artifact.py` is run
+before any deploy (it checks the bytecode for the real custodian and the IDL constants
+block, and refuses a test-keys artifact). All three ground constants are exported to
+the IDL via `#[constant]`.
 
 ---
 
@@ -144,6 +161,9 @@ pub enum SwapError {
     #[msg("This account is not recoverable")]              NotRecoverable,
     #[msg("Custodian constraint violated")]                NotCustodian,
     #[msg("Duplicate account supplied")]                   DuplicateAccount,
+    #[msg("A mapping for this original already exists")]   MappingExists,
+    #[msg("Unlock timestamp must be in the future")]       InvalidUnlockTimestamp,
+    #[msg("Arithmetic overflow or underflow")]             Arithmetic,
 }
 ```
 

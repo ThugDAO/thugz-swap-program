@@ -135,7 +135,7 @@ accounts are ordinary ATAs owned by that PDA.
 
 | Instruction | Signer | Effect |
 |---|---|---|
-| `initialize_pool` | admin | Creates Pool. `expected` is set from the compiled-in `EXPECTED` constant (1274) — **not** from instruction data, so a typo cannot become permanent. Takes `unlock_ts`, `collection`. `sealed = false`. |
+| `initialize_pool` | admin | Creates Pool. `expected` comes from the compiled `EXPECTED` constant and the signer must BE the compiled `ADMIN` constant — the singleton `["pool"]` seeds are front-runnable otherwise, and a captured pool is permanent. Takes `unlock_ts` (must be in the future), `collection`. `sealed = false`. |
 | `deposit_bird` | admin **+ token owner (HxwZ)** | Moves one remint into the vault **and** creates its Mapping in the same transaction. Fails if sealed. |
 | `fix_mapping` | admin | **Only while `!sealed`.** Closes a Mapping, returns rent to the **treasury**, decrements `deposited`, and returns the remint **to HxwZ's ATA — never to admin**. The one way to correct a bad deposit. |
 | `seal` | admin | One-way. Requires `deposited == expected`. After this no Mapping can be created or altered. |
@@ -643,7 +643,7 @@ actually landed, "you don't have to trust our file" carries real weight here.
 | | |
 |---|---|
 | Program ID | `CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs` |
-| Admin | `thuggjsp7Lz7xQ9DyQs7vGmDbVpsWumkv5TQZKHoLr7` |
+| Admin (compiled-in `ADMIN`) | `thuggjsp7Lz7xQ9DyQs7vGmDbVpsWumkv5TQZKHoLr7` — pinned at `initialize_pool` |
 | Upgrade authority | `birdAyQ1d6UXissFpwx9WcaxvJanzRcMSvzUkQxPpaV` — stays here indefinitely; burn vs Squads deferred |
 | Collection parent | `5KwhyPToqeGQYmRQjnx3EDSRMnaiCJDMEH3aGT8R3HNc` |
 | Custodian (compiled-in `CUSTODIAN`) | `HxwZCEMgck9v24iP9y2YcBttBkM7GjX77oBiNmQYiiUB` — deposit source; `fix_mapping` and `recover` destination |
