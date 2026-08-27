@@ -5,10 +5,11 @@
 //!   cargo test --features test-keys -- --test-threads=1
 //!
 //! The `test-keys` feature swaps ADMIN/CUSTODIAN for the committed fixture
-//! keypairs in tests/fixtures/ — every other constant (EXPECTED = 1274 included)
-//! is identical to mainnet. States that would need 1,274 real deposits (the seal
-//! boundary) are reached by forging the Pool account via `set_account`, which
-//! exercises the same on-chain checks without a thousand transactions.
+//! keypairs in tests/fixtures/ and scales EXPECTED to 20 (so devnet can reach a
+//! real seal). Everything else is identical to mainnet, whose EXPECTED = 1274 is
+//! proven by scripts/verify_mainnet_artifact.py reading the default build's IDL.
+//! Seal-boundary states here are reached by forging the Pool via `set_account`,
+//! which exercises the same on-chain checks without a thousand transactions.
 //!
 //! The standard (TEST_PLAN.md): a test only counts if it has been seen to fail
 //! against a deliberately broken build, and failure tests assert the SPECIFIC
@@ -377,7 +378,7 @@ fn happy_initialize_pool() {
     let cu = init_pool(&mut env).unwrap();
     record_cu("initialize_pool", cu);
     let pool = read_pool(&env);
-    assert_eq!(pool.expected, 1274, "EXPECTED must be the compiled 1274 even under test-keys");
+    assert_eq!(pool.expected, EXPECTED, "expected comes from the compiled constant");
     assert_eq!(pool.admin, env.admin.pubkey());
     assert_eq!(pool.deposited, 0);
     assert_eq!(pool.swapped, 0);

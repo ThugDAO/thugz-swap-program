@@ -1,0 +1,22 @@
+[package]
+name = "devnet-driver"
+version = "0.1.0"
+description = "TEST_PLAN Level 1 failure matrix driven against the devnet deployment (Phase 3)"
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+thugz-swap = { path = "../../programs/thugz-swap", features = ["test-keys", "no-entrypoint"] }
+anchor-lang = "1.1.2"
+anchor-spl = "1.1.2"
+solana-rpc-client = "3"
+solana-commitment-config = "3"
+solana-keypair = "3"
+solana-signer = "3"
+solana-message = "3"
+solana-transaction = "3"
+solana-instruction = "3"
+solana-transaction-error = "3"
+solana-system-interface = { version = "3", features = ["bincode"] }
+spl-token-interface = "2"
+spl-associated-token-account-interface = "2"

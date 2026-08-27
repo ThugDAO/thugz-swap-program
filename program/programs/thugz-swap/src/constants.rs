@@ -35,5 +35,12 @@ pub const ADMIN: Pubkey = pubkey!("6ZUQ8tECckw6rATxFETLzKMoGtNJBkcRWVWz4FRvyCbZ"
 
 /// The pair count. From the spec: set from this constant, never from instruction
 /// data — a mistyped count would be permanent and silently change `seal` behavior.
+/// Under `test-keys` it scales to 20 so devnet can reach a REAL seal with mock
+/// birds (devnet cannot forge account state the way LiteSVM can); the mainnet
+/// value is proven by the artifact guard reading the default build's IDL.
+#[cfg(not(feature = "test-keys"))]
 #[constant]
 pub const EXPECTED: u16 = 1274;
+#[cfg(feature = "test-keys")]
+#[constant]
+pub const EXPECTED: u16 = 20;

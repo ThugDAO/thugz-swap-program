@@ -28,6 +28,22 @@ sign as them. Everything else — `EXPECTED = 1274` included — is identical to
 **Never deploy a test-keys build**: run the artifact guard before any deploy; Gate 6's
 verifiedBuild independently ties the deployed bytecode to default-features source.
 
+## Deploying (devnet today, mainnet at Phase 6)
+
+**Never use `anchor deploy`** — it ignored a pass-through `--program-keypair` on devnet
+and deployed to a generated program ID (2 SOL burned, recovered via `solana program
+close`). Always:
+
+```bash
+python3 scripts/verify_mainnet_artifact.py          # mainnet only: SAFE TO DEPLOY required
+solana program deploy target/deploy/thugz_swap.so \
+  --program-id ~/.thugbirdz-keys/swap/program-CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs.json
+# then CONFIRM the printed Program Id is CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs
+```
+
+If the printed ID is anything else, a generated keypair was used: stop and
+`solana program close <wrong-id> --bypass-warning` to reclaim rent.
+
 ## Layout
 
 | | |

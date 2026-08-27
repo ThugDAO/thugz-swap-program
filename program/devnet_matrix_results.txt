@@ -1,0 +1,58 @@
+   Compiling thugz-swap v0.1.0 (/home/david/claude/thugbirdz/program/programs/thugz-swap)
+   Compiling devnet-driver v0.1.0 (/home/david/claude/thugbirdz/program/tools/devnet-driver)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.73s
+     Running `target/debug/devnet-driver`
+driver: program 2jvGw7yVyui3u15mpgLYXQN3DkjeqFNndA9acGcUdYgv
+driver: pool AUuo3Vg1vdDTA1ucy1dTV4W5CvJKcb9f7YMFR5MSGR1e, treasury DyiKmugBUaBMtFDLdR985KYQUpa1rV7jrf2RBDX7GW8G, EXPECTED = 20
+driver: funded admin / custodian / treasury
+PASS  init with past unlock_ts
+PASS  init by non-ADMIN (front-run guard)
+PASS  initialize_pool
+PASS  second initialize_pool refused
+driver: minting 20 mock pairs…
+driver: minted 5/20
+driver: minted 10/20
+driver: minted 15/20
+driver: minted 20/20
+PASS  deposit_bird (first)
+PASS  remint held by vault after deposit
+PASS  double deposit same bird (empty source first)
+PASS  double deposit same old_mint (fresh remint)
+PASS  deposit from non-custodian source
+PASS  imposter custodian signer
+PASS  non-admin deposit
+PASS  swap before seal
+PASS  fix_mapping cannot send to admin
+PASS  fix_mapping to custodian
+PASS  mapping closed after fix
+PASS  remint back with custodian after fix
+PASS  re-deposit after fix
+driver: bulk deposits done
+PASS  seal one short of expected
+PASS  deposit onto pre-funded mapping PDA (griefing absorbed)
+PASS  seal at expected
+PASS  second seal
+PASS  deposit after seal
+PASS  fix_mapping after seal
+PASS  swap (the whole desk)
+PASS  holder received remint
+PASS  original locked in vault
+PASS  swap same original twice
+PASS  name bird A surrender bird B (seeds)
+PASS  wrong vault_new_ata
+PASS  swap an original you don't own
+PASS  swap while paused
+PASS  swap after unpause
+PASS  swap a remint back in
+PASS  recover before unlock_ts
+driver: waiting 783s for unlock_ts…
+PASS  recover after unlock
+PASS  recovered remint with custodian
+PASS  recover same bird again (vault empty)
+PASS  recover a claimed mapping
+PASS  recover cannot touch a deposited original
+PASS  swap still works after unlock (window is a floor, not a cliff)
+
+=== devnet matrix: 40 passed, 0 failed ===
+
+[exited with code 0]

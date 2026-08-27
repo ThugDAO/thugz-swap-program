@@ -217,7 +217,21 @@ re-review of unrun code is not a test.
 
 ## Phase 6 — Mainnet program
 
-1. Deploy with the ground program keypair. Upgrade authority = `birdAyQ1d6UX…`.
+> **Deploy lesson, learned the cheap way on devnet (2026-08-27).** `anchor deploy`
+> silently IGNORED a pass-through `--program-keypair` flag and deployed to a freshly
+> generated program ID (then failed IDL init on top). On devnet that cost 2 SOL and a
+> `solana program close` to recover; on mainnet it would burn real SOL and strand a
+> useless program. Rules for every mainnet deploy:
+> 1. **Never use `anchor deploy`.** Use the Solana CLI directly, where the flag is
+>    unambiguous: `solana program deploy target/deploy/thugz_swap.so
+>    --program-id ~/.thugbirdz-keys/swap/program-CaWcaw….json`
+> 2. **Verify the printed Program Id equals `CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs`
+>    before doing anything else.** A mismatch means a generated keypair was used — stop,
+>    `solana program close <wrong-id> --bypass-warning` to reclaim the rent.
+> 3. Run `python3 program/scripts/verify_mainnet_artifact.py` on the exact artifact
+>    first — it must print SAFE TO DEPLOY (refuses a test-keys build).
+
+1. Deploy with the ground program keypair (per the rules above). Upgrade authority = `birdAyQ1d6UX…`.
 2. Verify the deployed bytecode with `verifiedBuild` / OtterSec, so anyone can repeat the
    check independently.
 3. Do **not** initialize yet.

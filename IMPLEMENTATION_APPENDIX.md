@@ -135,8 +135,9 @@ derivation. Never accept a caller-supplied bump.
 
 The LiteSVM suite must sign as admin and custodian, and nobody ships those private
 keys. A `test-keys` cargo feature swaps ADMIN/CUSTODIAN for committed fixture keypairs
-(`program/programs/thugz-swap/tests/fixtures/`); every other constant — `EXPECTED`
-included — is identical. **The mainnet artifact is the default-features build**, pinned
+(`program/programs/thugz-swap/tests/fixtures/`) and scales `EXPECTED` to 20, so devnet —
+which cannot forge account state the way LiteSVM can — reaches a REAL seal with mock
+birds. Every other constant is identical. **The mainnet artifact is the default-features build**, pinned
 by the Gate 6 verified build, and `program/scripts/verify_mainnet_artifact.py` is run
 before any deploy (it checks the bytecode for the real custodian and the IDL constants
 block, and refuses a test-keys artifact). All three ground constants are exported to
