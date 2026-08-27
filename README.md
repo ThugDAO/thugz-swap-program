@@ -44,5 +44,9 @@ mint time).
 
 ## Security
 
-No credentials are in this repo or its history. Keypairs live outside the working tree —
-see `SECRETS.md`. The program workspace (Phase 1) will land in `program/`.
+No credentials are in this repo or its history — verified by scanning every object in
+every commit against the live key material before publishing. All keypairs live outside
+the working tree. The two JSON keypairs under `program/programs/thugz-swap/tests/fixtures/`
+are throwaway devnet test fixtures compiled into the `test-keys` build only; the mainnet
+build uses different, hardcoded public constants whose private halves have never been in
+any repository. The program workspace is in `program/`.
