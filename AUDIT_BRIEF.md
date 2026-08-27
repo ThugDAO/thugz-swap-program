@@ -42,15 +42,15 @@ isn't. If you'd rather not be named, say so and it becomes "three independent re
 
 | | |
 |---|---|
-| Source | `ThugDAO/thugz-swap-v2`, branch under review |
-| Spec | `SWAP_SPEC.md` — accounts, instructions, invariants, failure matrix |
+| Source | `ThugDAO/thugz-swap-v2`, branch under review — program in `program/programs/thugz-swap/` |
+| Spec | `SWAP_SPEC.md` + `IMPLEMENTATION_APPENDIX.md` (part of the spec; wins on conflict) |
 | Sequence | `IMPLEMENTATION_PLAN.md` — phases 0–13 plus 3b, gates, reversibility map |
-| Tests | `TEST_PLAN.md` — six levels, plus the suite itself |
-| Live | Devnet deployment with 1,274 mock pairs, seeded and sealed |
-| History | `SWAP_PLAN_REVIEW.md` and PR #1 comments — three prior review passes |
-
-Devnet keys and mock birds will be provided so you can attack a live deployment, not just
-read code.
+| Tests | `TEST_PLAN.md` — six levels; Level 1 = 26 LiteSVM tests, Level 2 = property suite (`PROPTEST_CASES` env), both in `program/programs/thugz-swap/tests/` |
+| Devnet | Live 20-bird desk (test-keys build scales `EXPECTED` to 20): program `BGMFnkLVFynUXbeSAyhgNxUUx453f8kFBnvLUNjLAcEi`, page at https://thugz-swap-devnet.pages.dev — ask and we fund you a wallet with mock originals |
+| Full scale | Phase 4 rehearsal at the true 1,274 scale on a Surfpool mainnet fork — every Level 4 row incl. a planted bad pair, evidence in `verification/phase4_stage2_log.md`, reproducible below |
+| Sweep | `verification/sweep.py` + `sweep_report.json` — the pre-seal verifier (see §3) |
+| Prior passes | `SWAP_PLAN_REVIEW.md`, PR #1, and `program/audits/` — three machine passes over the built source (vuln scan clean; 45-agent spec-to-code, 0 confirmed divergences; Codex, 5×P2 fixed) |
+| Measured | swap 73,518 CU / 607 bytes; two batched 133,553 CU / 856 bytes; devnet failure matrix 40/40 (`program/devnet_matrix_results.txt`) |
 
 ---
 
@@ -108,8 +108,12 @@ substitution — that lets a swap through with `sealed == false`.
 off-chain sweep is the only thing that checks identity and injectivity, and it runs
 immediately before an irreversible step.
 
-A sweep that passes a corrupt set is the worst available bug. It is also code nobody has
-reviewed yet.
+A sweep that passes a corrupt set is the worst available bug. The sweep now exists
+(`verification/sweep.py`, 11 sections), has had one machine review pass (four fail-closed
+holes found and fixed — the report trail is in the git history), and in the Phase 4
+rehearsal it caught a deliberately planted bad pair (a live cantangler bird's mint wearing
+another bird's remint) at full scale. **No human has reviewed it yet. It runs immediately
+before the irreversible seal; it deserves one of you reading it line by line.**
 
 ### 4. Mint provenance
 
@@ -143,7 +147,7 @@ Not settled law, just where prior passes landed. Contradict any of it.
 | Read-back-before-seal is the best obtainable completeness check | 1,274 PDAs cannot be hashed in one transaction |
 | No "souvenir" merkle root | A root `swap` never checks is a comment, not a constraint |
 | Originals locked forever, not burned | Receipt already records the swap |
-| Batch sizes | Deposit 4/tx at 1,214 bytes with two signers; swap 670 of 1,232 |
+| Batch sizes | Deposit 4/tx with two signers; swap measured 607 bytes / 73,518 CU, two batched 856 bytes / 133,553 CU — both inside the 1,232-byte and 200k-CU defaults |
 | Rent payer is a system-owned `["treasury"]` PDA, not `Pool` | A data account cannot fund `create_account`; an earlier draft had `Pool` paying and would have failed at the first deposit |
 | `CUSTODIAN` is a compile-time constant, not an init parameter | A mis-set init field would put admin back in the destination seat; a constant is pinned by the verified build |
 
@@ -160,6 +164,37 @@ Not settled law, just where prior passes landed. Contradict any of it.
 
 Findings against the docs are as useful as findings against the code. If the spec says
 something the implementation doesn't, we would rather hear it from you than from a holder.
+
+---
+
+## Reproducing the full-scale rehearsal
+
+Everything in `verification/phase4_stage2_log.md` reruns from this repo (pinned toolchain:
+Anchor 1.1.2, Solana CLI 3.1.10, Surfpool 1.5.0; agent builds prefix `NO_DNA=1`):
+
+```
+# unit + property suites
+cd program && NO_DNA=1 anchor build -- --features test-keys
+cargo test --features test-keys -- --test-threads=1
+
+# mainnet-order rehearsal on a mainnet fork (no mainnet writes; needs any mainnet RPC)
+surfpool start --no-tui --no-studio --no-deploy --port 8999 --rpc-url <mainnet rpc>
+NO_DNA=1 anchor build            # default features = mainnet constants; then:
+solana program deploy target/deploy/thugz_swap.so --program-id <program keypair> -u http://127.0.0.1:8999
+THUGZ_RPC=http://127.0.0.1:8999 cargo run -p rehearsal-driver --bin deposit_run -- --init
+python3 tools/phase8_set_and_verify.py            # collection verify (preflight-gated)
+cargo run -p rehearsal-driver --bin deposit_run -- --plant-bad "THUG #3329=<any wrong mint>"
+THUGZ_SWEEP_RPC=http://127.0.0.1:8999 python3 ../verification/sweep.py   # must FAIL on the plant
+cargo run -p rehearsal-driver --bin stage2_ops -- fix-mapping <wrong mint>   # then redeposit, sweep, seal
+cargo run -p rehearsal-driver --bin swap_battery                          # swaps, race, drained treasury
+```
+
+The rehearsal keypairs are ours; reviewers get throwaway equivalents on request, or read the
+tools — each is a single file under `program/tools/`.
+
+**Standing rule:** if any finding forces a code change, Phases 3 and 4 rerun in full before
+anything reaches mainnet. Do not soften a finding to avoid triggering that; the rerun is an
+afternoon.
 
 ---
 
