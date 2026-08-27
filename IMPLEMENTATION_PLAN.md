@@ -330,7 +330,8 @@ public instructions.
 ## Phase 12 — Open
 
 1. Point the frontend (built in Phase 3b, hardened by Level 5a) at mainnet and deploy to
-   `thugbirdz.com/swap` and `thugdao.com/swap` (one worker, two routes).
+   `swap.thugbirdz.com` and `thugbirdz.com/swap` (operator decision 2026-08-27; was
+   thugdao.com/swap — the desk lives on the thugbirdz domain only).
 2. Publish: vault address, exact `unlock_ts`, the 1,274 count, the delist note.
 3. Announce.
 

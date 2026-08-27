@@ -44,3 +44,8 @@ flappybird/
 
 # local tool state
 .context/
+
+# Phase 4 rehearsal transient state (chain is the source of truth)
+program/tools/deposit_state.json
+program/tools/phase8_state.json
+verification/sweep_immutable_cache.json

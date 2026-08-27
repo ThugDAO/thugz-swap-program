@@ -1,6 +1,6 @@
 # Pre-deposit verification — PASS
 
-Ran 2026-08-27T01:19:40+00:00 against mainnet via Helius DAS + arweave.net. 1274 pairs.
+Ran 2026-08-27T16:53:20+00:00 against mainnet via Helius DAS + arweave.net. 1274 pairs.
 
 | Check | Result |
 |---|---|
@@ -13,4 +13,4 @@ Ran 2026-08-27T01:19:40+00:00 against mainnet via Helius DAS + arweave.net. 1274
 
 > Collection grouping of remints (Phase 8 not run yet, informational): {'news_verified_in_parent': 0, 'news_ungrouped': 1274, 'news_other': 0}
 > Remints mutable: 1274/1274; update authority != custodian on 0
-> D: 6 metadata file(s) fetched via fallback gateway https://permagate.io/ after arweave.net served a cached CDN error page; content is txid-addressed, so the bytes are the same record
+> D: 4 metadata file(s) fetched via fallback gateway https://permagate.io/ after arweave.net served a cached CDN error page; content is txid-addressed, so the bytes are the same record

@@ -1,0 +1,141 @@
+{
+ "what": "Phase 4 human image sample (IMPLEMENTATION_APPENDIX residual check on the 733-bird phase-2 pipeline)",
+ "date": "2026-08-27",
+ "reviewer": "operator",
+ "method": "31 birds sampled with fixed seed 1274 (23 phase-2, 8 phase-1 reviewed; one phase-2 bird excluded, see note), each remint image reviewed against its traits and Magic Eden's cached 2021 original thumbnail",
+ "verdicts": {
+  "pass": 31,
+  "fail": 0,
+  "unsure": 0
+ },
+ "excluded": {
+  "THUG #2594": "image tx 0s7cjo4QhRkNyP1HBmYBJJrMUQrwhHpKWHOadygHSf8 mined ~2026-08-25 (late mine); on-chain and confirmed but no gateway serves the data yet \u2014 recheck before the mainnet sweep"
+ },
+ "conclusion": "No wrong-image bird found. Residual image risk on the phase-2 pipeline considered covered per appendix; #2594 gateway availability tracked separately.",
+ "per_bird": [
+  {
+   "name": "THUG #0036",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #0229",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #0254",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #0717",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #0818",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #0828",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #0918",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1212",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1257",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1400",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1488",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1552",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1857",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1860",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1877",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #1939",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2202",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2262",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2415",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2447",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2557",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2649",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2697",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2704",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2823",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #2831",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #3047",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #3092",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #3109",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #3156",
+   "verdict": "pass"
+  },
+  {
+   "name": "THUG #3283",
+   "verdict": "pass"
+  }
+ ]
+}
