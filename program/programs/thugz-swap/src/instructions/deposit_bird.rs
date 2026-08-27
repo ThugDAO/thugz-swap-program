@@ -24,6 +24,7 @@ pub struct DepositBird<'info> {
     #[account(constraint = custodian.key() == CUSTODIAN @ SwapError::NotCustodian)]
     pub custodian: Signer<'info>,
 
+    #[account(constraint = new_mint.decimals == 0 @ SwapError::WrongRemint)]
     pub new_mint: Box<InterfaceAccount<'info, Mint>>,
 
     /// `new_mint` is READ FROM this account (enforced by the mint constraint), so the
@@ -137,6 +138,7 @@ pub fn handle_deposit_bird(ctx: Context<DepositBird>, old_mint: Pubkey) -> Resul
         claimed: false,
         claimed_by: Pubkey::default(),
         claimed_at: 0,
+        recovered: false,
         bump: mapping_bump,
     };
     let mut data = mapping_info.try_borrow_mut_data()?;

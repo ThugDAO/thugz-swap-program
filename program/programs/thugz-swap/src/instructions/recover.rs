@@ -21,6 +21,7 @@ pub struct Recover<'info> {
     /// atomically on the empty vault account and they keep their original. Flipping
     /// it to "tidy up" would strand a real 2021 bird in a dead mapping.
     #[account(
+        mut,
         seeds = [MAP_SEED, pool.key().as_ref(), old_mint.as_ref()],
         bump = mapping.bump,
     )]
@@ -64,9 +65,18 @@ pub struct Recover<'info> {
 }
 
 pub fn handle_recover(ctx: Context<Recover>, _old_mint: Pubkey) -> Result<()> {
+    // Sealed: recover is a post-open operation. Without this gate, an admin who set a
+    // short unlock_ts could pull remints out of an unsealed vault and then seal a desk
+    // with holes (deposited stays at expected while the vault is short).
+    require!(ctx.accounts.pool.sealed, SwapError::NotSealed);
     let now = Clock::get()?.unix_timestamp;
     require!(now >= ctx.accounts.pool.unlock_ts, SwapError::Locked);
     require!(!ctx.accounts.mapping.claimed, SwapError::AlreadyClaimed);
+    // Recover-once per mapping: `claimed` must stay false (spec §4b — a late swap must
+    // still fail atomically and leave the holder their original), so idempotency rides
+    // its own flag. Without it, returning a recovered remint to the vault would let
+    // recover run twice and inflate Pool.recovered, breaking the reconciliation invariant.
+    require!(!ctx.accounts.mapping.recovered, SwapError::AlreadyClaimed);
     require!(ctx.accounts.vault_ata.amount == 1, SwapError::NotHeld);
 
     let new_mint_key = ctx.accounts.new_mint.key();
@@ -104,6 +114,7 @@ pub fn handle_recover(ctx: Context<Recover>, _old_mint: Pubkey) -> Result<()> {
         ctx.accounts.new_mint.decimals,
     )?;
 
+    ctx.accounts.mapping.recovered = true;
     let pool = &mut ctx.accounts.pool;
     pool.recovered = pool.recovered.checked_add(1).ok_or(SwapError::Arithmetic)?;
 

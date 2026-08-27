@@ -534,9 +534,33 @@ fn happy_recover_after_unlock_leaves_claimed_false() {
     assert!(!m.claimed, "recover must LEAVE claimed false — spec §4b");
     assert_eq!(read_pool(&env).recovered, 1);
 
-    // Recover the same bird again: vault account is now empty → NotHeld.
+    // Recover the same bird again: the `recovered` flag now blocks it → AlreadyClaimed.
     let ix = recover_ix(&env, &bird, vault_ata);
-    assert_swap_err(send(&mut env, &[ix], &admin.pubkey(), &[&admin]), SwapError::NotHeld);
+    assert_swap_err(send(&mut env, &[ix], &admin.pubkey(), &[&admin]), SwapError::AlreadyClaimed);
+
+    // Finding 5: even if the remint is returned to the vault, recover cannot run twice
+    // (the mapping's `recovered` flag blocks it) — Pool.recovered stays at 1.
+    let custodian = env.custodian.insecure_clone();
+    litesvm_token::Transfer::new(&mut env.svm, &custodian, &bird.new_mint, &vault_ata, 1)
+        .send().unwrap();
+    assert_eq!(token_balance(&env, &vault_ata), 1, "remint returned to vault");
+    let ix = recover_ix(&env, &bird, vault_ata);
+    assert_swap_err(send(&mut env, &[ix], &admin.pubkey(), &[&admin]), SwapError::AlreadyClaimed);
+    assert_eq!(read_pool(&env).recovered, 1, "recover stayed idempotent");
+}
+
+#[test]
+fn fail_recover_before_seal() {
+    // Finding 4: recover must refuse on an unsealed pool even after unlock.
+    let mut env = setup();
+    init_pool(&mut env).unwrap();
+    let bird = make_bird(&mut env, &Pubkey::new_unique());
+    deposit(&mut env, &bird).unwrap();
+    warp_past_unlock(&mut env); // unlock passes, but NOT sealed
+    let vault_ata = get_associated_token_address(&env.vault, &bird.new_mint);
+    let ix = recover_ix(&env, &bird, vault_ata);
+    let admin = env.admin.insecure_clone();
+    assert_swap_err(send(&mut env, &[ix], &admin.pubkey(), &[&admin]), SwapError::NotSealed);
 }
 
 // ---------------------------------------------------------- failure matrix ----

@@ -31,8 +31,10 @@ covered by `tests/level1.rs` unless marked otherwise.
 ## Compiled ground constants (the custody model)
 
 - [x] `CUSTODIAN` (HxwZ): only legal deposit source owner + signer; only legal
-      `fix_mapping`/`recover` destination. **No instruction can deliver a token to the
-      admin** — mutation-tested
+      `fix_mapping`/`recover` destination. **No admin-GATED instruction delivers a token
+      to admin** (deposit/fix/recover custodian-pinned) — mutation-tested. `swap` is not
+      admin-gated: it pays the current holder, so an admin holding an original swaps it
+      like anyone (not a privileged path).
 - [x] `ADMIN`: pinned at `initialize_pool` — closes the singleton-seeds front-run /
       namespace-capture race (shared-base §29.1)
 - [x] `EXPECTED = 1274`: never from instruction data
@@ -50,8 +52,12 @@ covered by `tests/level1.rs` unless marked otherwise.
 
 ## CPI
 
-- [x] Program IDs: typed `Program`/`Interface` accounts; CpiContext built with
-      `Token/System/AssociatedToken::id()` — no caller-supplied program reaches a CPI
+- [x] Program IDs: typed `Program`/`Interface` accounts. System/ATA CPIs use
+      `System::id()`/`AssociatedToken::id()`. Token CPIs use the caller's `token_program`
+      key, constrained by `Interface<TokenInterface>` to the two genuine token programs and
+      required to match each mint's owner — the caller only selects classic SPL vs
+      Token-2022, never an arbitrary program. (All remints are classic SPL, verified by the
+      sweep; the deposit path is Token-2022-capable and the sweep is the extension guard.)
 - [x] `transfer_checked` everywhere (Token-2022-safe); mint + decimals always supplied
 - [x] PDA signing minimal: vault seeds sign token transfers out; treasury seeds sign
       rent payments; mapping seeds sign only its own allocate/assign
@@ -79,7 +85,7 @@ covered by `tests/level1.rs` unless marked otherwise.
 
 ## Test suite (Level 1, LiteSVM)
 
-- [x] 25 tests: full happy paths with state assertions, the §7 failure matrix with
+- [x] 26 tests: full happy paths with state assertions, the §7 failure matrix with
       SPECIFIC error codes (never "it reverted"), adversarial cases, CU profiling
 - [x] Mutation-tested: removing the sealed gate, the claimed check, or the
       `fix_mapping` destination check each makes its guarding test FAIL
@@ -101,6 +107,20 @@ covered by `tests/level1.rs` unless marked otherwise.
    to `set_paused`/`recover`-to-custodian. A compromised admin cannot extract value.
 4. **No timelock on `seal`**: the gate is the published sweep + plan Phase 10, external
    to the program by design.
+
+## Audit hardening (2026-08-27, tob-vuln-scan + spec-compliance + Codex)
+
+- [x] `recover` gated on `sealed` — an admin who set a short unlock cannot pull remints
+      from an unsealed vault then seal a desk with holes.
+- [x] `recover` idempotent per mapping (`Mapping.recovered` flag, 82→83 B) so a returned
+      remint cannot be re-recovered and inflate `Pool.recovered`; `claimed` still stays
+      false (spec §4b) so a late holder keeps their original.
+- [x] `unlock_ts` floor: mainnet requires ≥1 year at init (operator sets ~2); 60 s under
+      test-keys so tests reach `recover`.
+- [x] NFT semantics asserted on-chain: `decimals == 0` on the swap/deposit mints, not
+      only via the off-chain sweep.
+- [x] No P1 in any of the three audits. Rejected finding: forbidding off-curve (PDA)
+      holders — would break legitimate Squads/multisig holders who must be able to swap.
 
 ## Known limitations
 

@@ -14,8 +14,9 @@ pub const TREASURY_SEED: &[u8] = b"treasury";
 // default features — never with `test-keys`.
 
 /// Token custodian (HxwZ): the only legal `deposit_bird` source owner and signer, and
-/// the only legal destination for `fix_mapping` and `recover`. Admin can never receive
-/// a token from any instruction.
+/// the only legal destination for `fix_mapping` and `recover`. No admin-GATED instruction
+/// sends a token to admin. (`swap` is not admin-gated — it pays the current holder of the
+/// surrendered original, admin included only if admin legitimately holds one.)
 #[cfg(not(feature = "test-keys"))]
 #[constant]
 pub const CUSTODIAN: Pubkey = pubkey!("HxwZCEMgck9v24iP9y2YcBttBkM7GjX77oBiNmQYiiUB");

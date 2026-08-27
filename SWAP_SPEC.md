@@ -99,6 +99,7 @@ This is **both the pairing and the receipt**. There is no second account.
 | `claimed` | bool | Set once in `swap`. Never unset. |
 | `claimed_by` | Pubkey | Zero until claimed. |
 | `claimed_at` | i64 | Zero until claimed. |
+| `recovered` | bool | Set by `recover`; makes recovery idempotent without touching `claimed`. |
 | `bump` | u8 | |
 
 Existence of this account **is** eligibility. There is no list to publish and no proof to
@@ -308,12 +309,20 @@ authority) so the error is legible if the assumption is ever wrong.
 implemented as "admin passes any vault ATA." Require all of:
 
 ```rust
+require!(pool.sealed,                            NotSealed);   // post-open only
 require!(clock.unix_timestamp >= pool.unlock_ts, Locked);
-require!(!mapping.claimed,                       AlreadyClaimed);
+require!(!mapping.claimed,                        AlreadyClaimed);
+require!(!mapping.recovered,                      AlreadyClaimed); // recover-once per mapping
 require!(vault_ata.mint == mapping.new_mint,     NotRecoverable);
 require!(vault_ata.amount == 1,                  NotHeld);
 require!(vault_ata.owner == vault_pda,           NotRecoverable);
 ```
+
+`recover` sets `mapping.recovered = true` and increments `pool.recovered`. The `sealed`
+gate and the `recovered` flag were added in the 2026-08-27 audit pass: without the gate an
+admin who mis-set a short `unlock_ts` could recover from an unsealed vault; without the
+flag a remint returned to the vault could be recovered twice and break the
+`in_vault == expected − swapped − recovered` reconciliation.
 
 `recover` also increments `pool.recovered`, so the Level 6 vault reconciliation stays true
 after unlock.

@@ -36,5 +36,6 @@ pub struct Mapping {
     pub claimed: bool,
     pub claimed_by: Pubkey,
     pub claimed_at: i64,
+    pub recovered: bool, // set by `recover`; makes recover idempotent without touching `claimed`
     pub bump: u8,
 }

@@ -82,6 +82,7 @@ enum Loc {
 struct BirdModel {
     mapping: bool,
     claimed: bool,
+    recovered: bool,
     remint: Loc,
     original_in_vault: bool,
 }
@@ -117,6 +118,7 @@ impl Model {
                 .map(|_| BirdModel {
                     mapping: false,
                     claimed: false,
+                    recovered: false,
                     remint: Loc::Custodian,
                     original_in_vault: false,
                 })
@@ -188,9 +190,11 @@ impl Model {
                 let b = &self.birds[*i];
                 if !b.mapping {
                     Expect::Code(3012)
+                } else if !self.sealed {
+                    s(SwapError::NotSealed)
                 } else if !self.warped {
                     s(SwapError::Locked)
-                } else if b.claimed {
+                } else if b.claimed || b.recovered {
                     s(SwapError::AlreadyClaimed)
                 } else if b.remint != Loc::Vault {
                     s(SwapError::NotHeld)
@@ -226,6 +230,7 @@ impl Model {
             Op::Recover(i) => {
                 let b = &mut self.birds[*i];
                 b.remint = Loc::Custodian; // mapping stays; claimed stays false
+                b.recovered = true;
                 self.recovered += 1;
             }
             Op::SetPaused(p) => self.paused = *p,

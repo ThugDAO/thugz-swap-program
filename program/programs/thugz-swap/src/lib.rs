@@ -10,7 +10,9 @@
 // A one-way redemption desk: a holder surrenders a 2021 original and receives its
 // reminted twin in the same transaction. 1,274 fixed pairs; pairing is loaded by the
 // admin pre-seal, verified off-chain by the sweep, then sealed forever. Originals
-// lock in the vault permanently. No instruction can deliver a token to the admin.
+// lock in the vault permanently. No ADMIN-GATED instruction delivers a token to admin —
+// deposit, fix_mapping and recover are all custodian-pinned. (`swap` pays whoever holds an
+// unclaimed original, admin included if they legitimately hold one — not a privileged path.)
 
 pub mod constants;
 pub mod error;

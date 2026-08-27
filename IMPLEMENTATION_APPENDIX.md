@@ -70,9 +70,10 @@ pub struct Mapping {
     pub claimed: bool,        //  1
     pub claimed_by: Pubkey,   // 32
     pub claimed_at: i64,      //  8
+    pub recovered: bool,      //  1   <- recover-once guard (2026-08-27 audit)
     pub bump: u8,             //  1
 }
-// 8 discriminator + 74 = 82
+// 8 discriminator + 75 = 83  (claimed stays at offset 40 — indexers unaffected)
 ```
 
 `Mapping` at 82 bytes is **0.001462 SOL** each — rent-exempt is `(128 + len) × 3480 × 2`.

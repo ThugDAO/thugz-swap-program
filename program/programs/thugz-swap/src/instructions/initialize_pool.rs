@@ -29,10 +29,21 @@ pub struct InitializePool<'info> {
 }
 
 pub fn handle_initialize_pool(ctx: Context<InitializePool>, unlock_ts: i64, collection: Pubkey) -> Result<()> {
-    // Sentinel guard: unlock_ts feeds `now >= unlock_ts` comparisons for two years.
-    // A zero or past value would make `recover` live immediately.
+    // The spec's unlock is opening + 2 years. Enforce a floor so a fat-fingered or
+    // compromised admin cannot set a near-term unlock that makes `recover` live early.
+    // (recover only ever sends to the custodian, never admin — this just protects the
+    // two-year promise holders are shown.)
+    // Mainnet floor is 1 year (operator sets ~2); under test-keys it drops to 60s so
+    // the devnet driver and seed tool can exercise `recover` without a year's wait.
+    #[cfg(not(feature = "test-keys"))]
+    const MIN_LOCK_SECONDS: i64 = 365 * 24 * 60 * 60;
+    #[cfg(feature = "test-keys")]
+    const MIN_LOCK_SECONDS: i64 = 60;
     let now = Clock::get()?.unix_timestamp;
-    require!(unlock_ts > now, SwapError::InvalidUnlockTimestamp);
+    require!(
+        unlock_ts >= now.checked_add(MIN_LOCK_SECONDS).ok_or(SwapError::Arithmetic)?,
+        SwapError::InvalidUnlockTimestamp
+    );
 
     // Canonical bumps found once, stored, and reused on every later derivation.
     // The treasury account itself is deliberately NOT touched here: it must stay

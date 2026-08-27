@@ -38,10 +38,16 @@ pub struct Swap<'info> {
 
     /// Needed for `transfer_checked` of the original; tied to the surrendered
     /// account's mint so it cannot be substituted.
-    #[account(constraint = old_mint.key() == holder_original_ata.mint)]
+    #[account(
+        constraint = old_mint.key() == holder_original_ata.mint,
+        constraint = old_mint.decimals == 0 @ SwapError::NotHeld,
+    )]
     pub old_mint: Box<InterfaceAccount<'info, Mint>>,
 
-    #[account(constraint = new_mint.key() == mapping.new_mint @ SwapError::WrongRemint)]
+    #[account(
+        constraint = new_mint.key() == mapping.new_mint @ SwapError::WrongRemint,
+        constraint = new_mint.decimals == 0 @ SwapError::WrongRemint,
+    )]
     pub new_mint: Box<InterfaceAccount<'info, Mint>>,
 
     /// CHECK: The vault authority PDA; signs the outbound remint transfer via seeds.
