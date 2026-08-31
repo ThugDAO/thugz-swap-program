@@ -65,3 +65,21 @@ the working tree. The two JSON keypairs under `program/programs/thugz-swap/tests
 are throwaway devnet test fixtures compiled into the `test-keys` build only; the mainnet
 build uses different, hardcoded public constants whose private halves have never been in
 any repository. The program workspace is in `program/`.
+
+### Reporting a vulnerability
+
+If you find a vulnerability in the swap program or this repo, please report it privately —
+do not open a public issue, post details publicly, or attempt to exploit it against the
+deployed program (`CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs`) or the vault it guards.
+
+- **Contact:** DM [@thugdao](https://twitter.com/thugdao) on Twitter/X
+- Include enough detail to reproduce the issue; a proof-of-concept against a local fork or
+  devnet is welcome, mainnet is not.
+- You'll get an acknowledgement within 48 hours and a status update as we triage. Please
+  give us a reasonable window to remediate before any public disclosure.
+- Good-faith research under this policy will never be met with legal action; public
+  credit is offered once the issue is resolved, if you want it.
+
+This policy is also published on-chain via the
+[Program Metadata](https://github.com/solana-program/program-metadata) `security` account
+for the program.
