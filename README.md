@@ -44,9 +44,11 @@ Both must print `3e0dd78315910f8c962ba9bab5f97e2cd1fd55252ddeb9f54c59b3b87024602
   charges nothing — you pay only the network fee.
 - **If your bird is listed on a marketplace, delist it first.** Listings freeze the token,
   and a frozen original cannot be swapped; delisting thaws it.
-- **The desk does not close.** `unlock_ts` is `1851379200` (2028-09-01T00:00:00Z). That is
-  not a swap deadline: swapping continues after it. It is the earliest moment the admin
-  *may* recover remints nobody has claimed — nothing more. There is no reason to rush.
+- **You have at least two years.** `unlock_ts` is `1851379200` (2028-09-01T00:00:00Z).
+  Until then your twin is locked in the vault — the program cannot release it to anyone
+  but you. After that date the DAO may recover remints that were never claimed, so there
+  is no need to rush, but don't forget about it either. Swapping itself does not stop at
+  `unlock_ts`; only unclaimed remints become recoverable.
 - Verify everything yourself: the deployed bytecode ([verified](https://verify.osec.io/status/CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs)),
   your bird's pairing (its Mapping PDA, seeds `["map", pool, old_mint]`), and the
   [pre-seal sweep report](verification/sweep_report.md) — all from public data.
