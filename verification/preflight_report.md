@@ -1,6 +1,6 @@
 # Pre-deposit verification — PASS
 
-Ran 2026-08-31T14:27:26+00:00 against mainnet via Helius DAS + arweave.net. 1274 pairs.
+Ran 2026-08-31T15:25:03+00:00 against mainnet via Helius DAS + arweave.net. 1274 pairs.
 
 | Check | Result |
 |---|---|
@@ -11,6 +11,6 @@ Ran 2026-08-31T14:27:26+00:00 against mainnet via Helius DAS + arweave.net. 1274
 | E. Original-Mint tag on every metadata tx (GraphQL) | PASS |
 | F. Freeze authority == own master edition PDA on every mint | PASS |
 
-> Collection grouping of remints (Phase 8 not run yet, informational): {'news_verified_in_parent': 0, 'news_ungrouped': 1274, 'news_other': 0}
+> Collection grouping of remints (Phase 8 not run yet, informational): {'news_verified_in_parent': 1274, 'news_ungrouped': 0, 'news_other': 0}
 > Remints mutable: 1274/1274; update authority != custodian on 0
-> D: 3 metadata file(s) fetched via fallback gateway https://permagate.io/ after arweave.net served a cached CDN error page; content is txid-addressed, so the bytes are the same record
+> D: 1 metadata file(s) fetched via fallback gateway https://permagate.io/ after arweave.net served a cached CDN error page; content is txid-addressed, so the bytes are the same record

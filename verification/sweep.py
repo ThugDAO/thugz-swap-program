@@ -70,6 +70,11 @@ EXPECTED = 1274
 ARWEAVE_RE = re.compile(r"^https://arweave\.net/[A-Za-z0-9_-]{43}$")
 TXID_RE = re.compile(r"^[A-Za-z0-9_-]{43}$")
 FALLBACK_GW = "https://permagate.io/"   # fetch fallback only; content is txid-addressed
+# Tried in order after arweave.net; txid-addressed content plus the sha256 / frozen-JSON
+# assertions mean extra gateways add availability, never trust (a wrong or cached-error
+# body can only fail the checks, not pass them). Added 2026-08-31 when a sealing-run
+# sweep saw 75 transient 404s across arweave.net+permagate under load.
+FALLBACK_GWS = ["https://permagate.io/", "https://ar-io.dev/"]
 KEY = os.environ.get("HELIUS_API_KEY") or sys.exit("HELIUS_API_KEY not set")
 MAINNET = f"https://mainnet.helius-rpc.com/?api-key={KEY}"
 TARGET = os.environ.get("THUGZ_SWEEP_RPC") or sys.exit(
@@ -380,8 +385,15 @@ if len(unverified_a) > 10:
 # 6b — enumeration via mainnet DAS: no foreign members may exist
 members, page = {}, 1
 while True:
+    # showUnverifiedCollections is required for Helius DAS to emit the per-grouping
+    # `verified` field at all — without it, verified members come back bare and the
+    # fails-closed rule below reads everything as unverified (found on the first real
+    # mainnet 6b run, 2026-08-31; rehearsal targeted Surfpool so this path never ran).
+    # With the option on, unverified memberships also become visible as verified:false,
+    # which this check wants to see.
     r = rpc(MAINNET, "getAssetsByGroup",
-            {"groupKey": "collection", "groupValue": PARENT, "page": page, "limit": 1000})
+            {"groupKey": "collection", "groupValue": PARENT, "page": page, "limit": 1000,
+             "options": {"showUnverifiedCollections": True}})
     for it in r["items"]:
         v = False
         for g in it.get("grouping", []):
@@ -491,10 +503,14 @@ for n in retry_list:
     try:
         meta = http_json(uri, retries=3)
     except Exception:
-        try:
-            meta = http_json(FALLBACK_GW + meta_txid[n], retries=4); fellback += 1
-        except Exception as e:
-            fail("8.fetch", n, str(e)); continue
+        meta = None
+        for gw in FALLBACK_GWS:
+            try:
+                meta = http_json(gw + meta_txid[n], retries=4); fellback += 1; break
+            except Exception as e:
+                last_err = e
+        if meta is None:
+            fail("8.fetch", n, str(last_err)); continue
     _CACHE["meta"][meta_txid[n]] = {"properties": meta.get("properties"), "name": meta.get("name")}
     for c, s, d in _arweave_findings(o, n, meta): fail(c, s, d)
 if fellback: notes.append(f"8: {fellback} fetched via fallback gateway (txid-addressed, same bytes)")
@@ -551,10 +567,14 @@ def check_image(n):
     try:
         data = http_bytes(f"https://arweave.net/{tx}", retries=3)
     except Exception:
-        try:
-            data = http_bytes(FALLBACK_GW + tx, retries=4)
-        except Exception as e:
-            return (n, [("11.image-fetch", n, f"image tx {tx}: {e}")])
+        data = None
+        for gw in FALLBACK_GWS:
+            try:
+                data = http_bytes(gw + tx, retries=4); break
+            except Exception as e:
+                last_err = e
+        if data is None:
+            return (n, [("11.image-fetch", n, f"image tx {tx}: {last_err}")])
     got = hashlib.sha256(data).hexdigest()
     if got != want:
         return (n, [("11.image-hash", n, f"sha256 {got[:16]}… != claim map art_sha256")])
