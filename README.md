@@ -4,10 +4,10 @@ A one-way redemption desk on Solana mainnet: a holder of a 2021 thugbirdz origin
 **one transaction** that locks their original in a program vault and hands back its
 reminted twin with recovered art. 1,274 fixed pairs, no pricing, no ordering, no un-swap.
 
-**Status: deployed to mainnet, not yet initialized.** Built, reviewed by three independent
+**Status: LIVE.** Sealed, verified, and open at [migrate.thugbirdz.com](https://migrate.thugbirdz.com). Built, reviewed by three independent
 external reviewers (no P1 findings; see `FINAL_REVIEW_PLAN.md`), and deployed 2026-08-31 at
 slot 443163190 (signature `45uY7zKG78vNZAfiWDdXLpcUPHHqYdxWxKoNazymh9cT9QZHZQsWWTnxwK2pevAXNqsUJ4hUTnASmFGpzdThHBuY`).
-The pool is not initialized and no birds are deposited; the desk is not open.
+All 1,274 pairs are deposited, swept (0 failures), and sealed; the desk is open.
 
 ### Verify the deployed bytecode yourself
 
@@ -35,11 +35,30 @@ Both must print `3e0dd78315910f8c962ba9bab5f97e2cd1fd55252ddeb9f54c59b3b87024602
 | 6 | `AUDIT_BRIEF.md` | What the three external reviewers are asked to attack |
 | — | `SWAP_PLAN_REVIEW.md` | **Historical.** Contradicts the current spec; kept as review record only |
 
+## The desk is live
+
+**https://migrate.thugbirdz.com** (also `thugbirdz.com/migrate`)
+
+- **1,274** originals are redeemable. Your 2021 original goes into the program vault; its
+  remint with recovered art comes back in the same transaction. One signature. The desk
+  charges nothing — you pay only the network fee.
+- **If your bird is listed on a marketplace, delist it first.** Listings freeze the token,
+  and a frozen original cannot be swapped; delisting thaws it.
+- **The desk does not close.** `unlock_ts` is `1851379200` (2028-09-01T00:00:00Z). That is
+  not a swap deadline: swapping continues after it. It is the earliest moment the admin
+  *may* recover remints nobody has claimed — nothing more. There is no reason to rush.
+- Verify everything yourself: the deployed bytecode ([verified](https://verify.osec.io/status/CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs)),
+  your bird's pairing (its Mapping PDA, seeds `["map", pool, old_mint]`), and the
+  [pre-seal sweep report](verification/sweep_report.md) — all from public data.
+
 ## Ground addresses
 
 | | |
 |---|---|
 | Program | `CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs` |
+| Pool | `7gDE9pxPVV7Cfz5hGfvXUs2x6T7xNL7rto2zDJyqaDoP` |
+| Vault | `4JUcCejbDEHzPZLBq7tvrGNCobdTGuqy3wCu9wrxnxYN` |
+| Treasury | `7kr7s7WmtSvUqq3TtmEKefXYB5yJw9ZEj7Uz1DeKkWRN` |
 | Admin | `thuggjsp7Lz7xQ9DyQs7vGmDbVpsWumkv5TQZKHoLr7` |
 | Upgrade authority | `birdAyQ1d6UXissFpwx9WcaxvJanzRcMSvzUkQxPpaV` |
 | Custodian (`CUSTODIAN` constant) | `HxwZCEMgck9v24iP9y2YcBttBkM7GjX77oBiNmQYiiUB` |
