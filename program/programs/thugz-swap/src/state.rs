@@ -22,7 +22,7 @@ pub struct Pool {
     pub treasury_bump: u8, // the rent payer signs with this
 }
 
-/// One per original, seeds `["map", pool, old_mint]`. 8 discriminator + 74 = 82 bytes.
+/// One per original, seeds `["map", pool, old_mint]`. 8 discriminator + 75 = 83 bytes.
 ///
 /// Both the pairing and the receipt — existence IS eligibility. Created only inside
 /// `deposit_bird`, via manual allocate/assign (never Anchor `init`, which aborts on a

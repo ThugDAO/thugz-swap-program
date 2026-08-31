@@ -46,11 +46,11 @@ isn't. If you'd rather not be named, say so and it becomes "three independent re
 | Spec | `SWAP_SPEC.md` + `IMPLEMENTATION_APPENDIX.md` (part of the spec; wins on conflict) |
 | Sequence | `IMPLEMENTATION_PLAN.md` — phases 0–13 plus 3b, gates, reversibility map |
 | Tests | `TEST_PLAN.md` — six levels; Level 1 = 26 LiteSVM tests, Level 2 = property suite (`PROPTEST_CASES` env), both in `program/programs/thugz-swap/tests/` |
-| Devnet | Live 20-bird desk (test-keys build scales `EXPECTED` to 20): program `BGMFnkLVFynUXbeSAyhgNxUUx453f8kFBnvLUNjLAcEi`, page at https://thugz-swap-devnet.pages.dev — ask and we fund you a wallet with mock originals |
+| Devnet | Live 20-bird desk — **test-keys bytecode, not the mainnet artifact**: `EXPECTED=20`, fixture ADMIN/CUSTODIAN (the fixtures in `tests/fixtures/`), program `BGMFnkLVFynUXbeSAyhgNxUUx453f8kFBnvLUNjLAcEi`, page at https://thugz-swap-devnet.pages.dev. Good for exercising flows, useless for reviewing the HxwZ pinning or 1,274-arity seal — read the default-features build for those. The committed failure-matrix log ran on a separate throwaway deployment (`2jvGw7y…`); same source, different id. Ask and we fund you a wallet with mock originals |
 | Full scale | Phase 4 rehearsal at the true 1,274 scale on a Surfpool mainnet fork — every Level 4 row incl. a planted bad pair, evidence in `verification/phase4_stage2_log.md`, reproducible below |
 | Sweep | `verification/sweep.py` + `sweep_report.json` — the pre-seal verifier (see §3) |
 | Prior passes | `SWAP_PLAN_REVIEW.md`, PR #1, and `program/audits/` — three machine passes over the built source (vuln scan clean; 45-agent spec-to-code, 0 confirmed divergences; Codex, 5×P2 fixed) |
-| Measured | swap 73,518 CU / 607 bytes; two batched 133,553 CU / 856 bytes; devnet failure matrix 40/40 (`program/devnet_matrix_results.txt`) |
+| Measured | Two CU figures exist, sources pinned so nobody cites an unsourced number: **73,518 CU / 607 bytes** single swap and **133,553 CU / 856 bytes** two-batched (Surfpool mainnet fork, `meta.computeUnitsConsumed`, `program/tools/swap_battery_report.json`); **86,661 CU** first-time swap (LiteSVM harness, `program/SECURITY_CHECKLIST.md`). Different runtimes account differently; budget against the higher. Devnet failure matrix 40/40 (`program/devnet_matrix_results.txt`) |
 
 ---
 
@@ -95,6 +95,13 @@ admin.
 
 **Attack that argument.** It is the third one; the first two failed. If this design has a
 hole, it is here.
+
+Recent hardenings you should know exist (post-audit, in the source you are reading):
+`Mapping.recovered` (recover is idempotent without touching `claimed`, 83-byte Mapping),
+`recover` requires `sealed`, a floor on `unlock_ts` at init, and `decimals == 0` asserts.
+Also: the sweep's §6b extras check reads a 3,318-mint originals reference list that
+currently lives outside this repo — flagged for vendoring; ask for the file if you review
+the sweep before that lands.
 
 ### 2. The seal gate
 

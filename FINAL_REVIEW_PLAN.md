@@ -233,3 +233,101 @@ structurally sound and injective, every remint present and custodian-held, **zer
 mismatches across all 1,274** — the phase-2 (733) pipeline gap is now measured, not
 argued — and Arweave provenance confirmed for every pair. The remints are confirmed
 ungrouped (Phase 8 not yet run), matching the plan.
+
+---
+
+## Phase 5 findings log
+
+### Review 1 of 3 — received 2026-08-27 (against `3c2f000`)
+
+Verdict: **no P1**; 1 P2; 8 P3; all six brief questions hold (sweep = "mostly").
+Every factual claim spot-verified against the repo before logging. Fixes are HELD
+until all three reviews are pooled (one batch, one Phase 3+4 rerun).
+
+| ID | Finding | Triage |
+|---|---|---|
+| P2 | `MIN_LOCK_SECONDS` = 1 year; spec says `unlock_ts` = "opening + 2 years, immutable". A 366-day init is legal and opens `recover` a year early (still HxwZ-only). | **Confirmed divergence.** Operator decision: pin 2y in program, or spec becomes "≥1y, operator sets ~2". Code change either way → 3+4 rerun. |
+| P3-1 | Mapping is 83 B; spec rent table, README, `state.rs` doc comment still say 82 (8+74). **Seventh doc drift.** | Confirmed. Doc/comment sync queued. Rent table +0.009 SOL total. |
+| P3-2 | `swap` doesn't pre-check `mapping.recovered` / vault amount; post-recover swap fails on the transfer, tx reverts, holder keeps original. | Correct as designed (atomicity). Frontend gets a friendly mapping for this error. No code change. |
+| P3-3 | `DuplicateAccount` error defined, never used. | Confirmed. Remove or document as reserved — cleanup batch. |
+| P3-4 | `Interface<TokenInterface>` admits Token-2022; sweep §10 pins Tokenkeg. | Accepted: a 2022 remint requires admin+custodian depositing one AND skipping the sweep; sweep is the guard. Note added to spec queue. |
+| P3-5 | Sweep §6b: empty DAS response ⇒ note, not failure — "no foreign members" silently unenforced on outage. | **Good catch.** Queued: fail when target is mainnet and DAS members == 0 or verified-remint count ≠ 1274. |
+| P3-6 | Sweep originals allowlist (`thugbird_mints.json`, 3,318) is outside the repo and unpinned. | **Good catch.** Queued: vendor into `verification/` + pin sha256 in sweep; fail closed if missing. |
+| P3-7 | Sweep §4 doesn't check the SPL owner field == vault PDA (address is canonical ATA, so belt-and-braces). | Queued, trivial. |
+| P3-8 | No treasury withdraw; leftover SOL stays in the PDA when the desk dies. | Operator decision (Phase 13 territory). Stuck lamports, not stuck birds. |
+| Brief-a | Live pages.dev desk is test-keys bytecode (EXPECTED=20, fixture keys) — not a review of the mainnet artifact. | Brief fixed immediately (packet accuracy for reviewers 2–3). |
+| Brief-b | Two CU numbers in the packet (86,661 LiteSVM vs 73,518 Surfpool) with no source pinned — the "two-year consensus" failure shape. | Brief fixed immediately: both numbers, sources pinned, budget to the higher. |
+| Brief-c | Matrix log ran on throwaway id `2jvGw7y…`; brief/page point at `BGMFnk…`. | Brief fixed immediately. |
+
+### Review 2 of 3 — received 2026-08-27 ("Hermes", static source review against mirror `66d189d`)
+
+Verdict: **0 critical/high code defects**; 1 High (trust/design, disclosed), 2 Medium
+(design-accepted), 4 Low, 4 Informational. All six brief targets held line-by-line;
+sweep byte offsets independently re-derived against the Anchor structs and confirmed.
+
+| ID | Finding | Triage |
+|---|---|---|
+| H-1 | Live upgrade authority `birdAyQ…` conditions every invariant; disclosed. Recommends: desk UI shows machine-read authority status; consider Squads BEFORE launch (after-launch handoff needs the same key's cooperation). | Trust position, known. **Operator decision queued: Squads timing.** UI item → Phase 12 list. |
+| M-1 | Seal is arity-only; sweep is load-bearing (verified fail-closed, offsets correct, anchors independent). Recommends versioned witness artifacts + pinned hashes in the published report. | Sweep already emits claim_map + report sha256; witness-pinning matches R1 P3-6 (vendor + hash the allowlist). Queued. |
+| M-2 | 1-year floor vs promised 2 years; recommends raise floor or render `unlock_ts` from chain in the UI. | **CONVERGES with R1 P2** — independently double-flagged. |
+| L-1 | Token-2022 deposit accepted on-chain; sweep-guarded only. Recommends on-chain legacy-SPL owner assert in `deposit_bird`. | **CONVERGES with R1 P3-4**, with a sharper fix. Queued for pool decision. |
+| L-2 | Post-recover swap fails with opaque token error; recommends `require!(!mapping.recovered)` in `swap`. | **CONVERGES with R1 P3-2**, upgraded from "frontend copy" to a 1-line program fix. Queued. |
+| L-3 | `state.rs` Mapping comment 82 vs actual 83. | **CONVERGES with R1 P3-1** (subset). Queued. |
+| L-4 | `swap` lacks explicit `vault_new_ata.amount == 1` (only asymmetry in the check pattern). | Confirmed against source. Queued, trivial. |
+| I-1..I-4 | pool.collection sweep-enforced; 0-decimal fungible deposit sweep-rejected; off-curve holder acceptance disposition endorsed; per-deposit bump search CU note. | No action. |
+
+**Independent convergences after two reviews** (the brief's pooled-weight rule):
+unlock floor (R1-P2 = R2-M2) · Token-2022 guard (R1-P3-4 = R2-L1) · recovered-check in
+swap (R1-P3-2 = R2-L2) · Mapping 82→83 drift (R1-P3-1 = R2-L3). Four double-flags, zero
+contradictions between reviews so far.
+
+### Operator decisions — 2026-08-27 (pooled-fix batch, lands after review 3)
+
+1. **Unlock floor: pin 2 years.** `MIN_LOCK_SECONDS` becomes 2 × 365 days on mainnet
+   builds (test-keys keeps 60 s). Resolves R1-P2 / R2-M2 by enforcement, not prose.
+2. **Upgrade authority: keep the live key + published revisit trigger.** Squads handoff
+   after 20 public swaps + 30 quiet days. Frontend renders the live authority status
+   from chain (Phase 12 item) so the posture is machine-checkable meanwhile.
+3. **Treasury: no withdraw instruction.** Fund lean instead — Phase 7 funding computed
+   from live `getMinimumBalanceForRentExemption` (rent-reduction gates pending), topped
+   up operationally. Leftover lamports are accepted as the cost of "no instruction
+   delivers value to admin".
+4. **Deposit run: legacy 4/tx regardless of the tx-v1 gate.** Phase 9 note amended from
+   "re-measure" to "check the gate for awareness, proceed legacy". Toolchain pin stands.
+
+Ratified with the batch: deposit_bird legacy-SPL owner assert (T22), swap
+`!mapping.recovered` + `vault_new_ata.amount == 1`, sweep hardenings (empty-DAS failure
+on mainnet target, vendored+sha-pinned allowlist, §4 owner field), doc syncs (Mapping
+83 B ×3, DuplicateAccount removed), frontend queue (blockhash retry, treasury-drained
+copy, chain-rendered unlock_ts + authority status).
+
+### Review 3 of 3 — received 2026-08-27 (independent third pass against mirror `66d189d`)
+
+Verdict: **no P1, no P2.** The deepest pass: ran Level 1 (26/26) + Level 2 + artifact
+guard independently; re-derived the sweep PDA self-test from scratch; scanned ALL 1,274
+old mints on mainnet (supply, mint authority, freeze authority); hand-verified 5 random
+Arweave provenance/tag records; read the sweep line-by-line and endorsed the fail-closed
+structure.
+
+| ID | Finding | Triage |
+|---|---|---|
+| P3-a | Sweep immutable cache trusted across runs — a poisoned earlier local run would be trusted by the sealing run. | **Good catch.** Batch: `--no-cache` flag + mainnet sealing runbook mandates it. |
+| P3-b | 6b allowlist `thugbird_mints.json` not in the repo; sweep crashes if absent. | **THIRD flag (R1-P3-6, R3).** Batch: vendor + sha-pin. |
+| P3-c | §11 art_sha256 shares pipeline with images — detects gateway drift, not mint-time wrong image; human sample non-optional. | Concurs with spec's own model; sample already done 31/31, logged. |
+| Disclosure-1 | **Four originals burned (supply 0): THUG #1370, #1400, #1407, #3074** — their remints unclaimable by design; sit in vault until unlock_ts then recoverable. **Independently re-verified 2026-08-27: full 1,274-mint scan finds exactly these four.** | Batch: operator notes + desk FAQ + spec line; ~1,270 is the true max swap count. |
+| Disclosure-2 | All 1,274 old-mint mint authorities immutable (973 none / 301 own-edition / 0 foreign) — the fresh-unit swap-theft path is closed by the data; currently unclaimed in the spec. | Batch: add the strengthening line to spec. |
+| Disclosure-3 | Old-mint freeze authorities: 0 foreign (973 none / 301 own-edition). | Recorded; extends the remint-side §10 fact to originals. |
+| P4 | Two CU figures (Surfpool 73,518 vs LiteSVM 86,661) unlabeled in SECURITY_CHECKLIST. | Batch: label contexts (brief already fixed). |
+| Framing | fix_mapping v3 limits *admin-key* compromise, not *operator* compromise (admin+custodian are the same operator) — "admin cannot pocket" reads stronger than it is. No code change (HxwZ co-sign equivalent trust, worse ops). | Batch: precise wording in desk copy/spec. |
+
+### GATE 5 — POOLED VERDICT (all three reviews in, 2026-08-27)
+
+**No P1 from any reviewer. No P2 from reviews 2–3; review 1's single P2 (unlock floor)
+resolved by operator decision (pin 2 years).** Zero contradictions across the three.
+Convergences: unlock floor (R1+R2), Token-2022 assert (R1+R2), swap recovered-check
+(R1+R2), Mapping 83 B drift (R1+R2), allowlist vendoring (R1+R3), CU labeling (R1+R3).
+All three independently endorse: fix_mapping v3, the seal gate, mint provenance, recover,
+treasury flow, and the sweep's fail-closed design.
+
+Gate 5 exit: land the single pooled fix batch (specified above + operator decisions),
+rerun Phases 3+4, then Phase 6 is at operator discretion and Phase 7+ is unblocked.

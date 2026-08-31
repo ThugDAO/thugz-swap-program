@@ -545,7 +545,16 @@ fn main() {
     let rec = ctx.token_balance(&get_associated_token_address(&ctx.custodian.pubkey(), &birds[3].new_mint));
     ctx.check("recovered remint with custodian", rec == 1, format!("balance {rec}"));
     let r = recover(&ctx, &birds[3], vault_ata3);
-    ctx.expect_swap_err("recover same bird again (vault empty)", r, SwapError::NotHeld);
+    // Idempotency rides Mapping.recovered (audit hardening 0dde8d1); the guard fires
+    // before the vault-amount check, so the error is AlreadyClaimed, not NotHeld.
+    ctx.expect_swap_err("recover same bird again (recovered flag)", r, SwapError::AlreadyClaimed);
+
+    // NEW ROW (Phase 5 batch): a late holder swapping a RECOVERED bird now gets the
+    // attributable Recovered error before any CPI, and keeps their original.
+    let r = swap(&ctx, &birds[3]);
+    ctx.expect_swap_err("swap a recovered bird fails legibly", r, SwapError::Recovered);
+    let held = ctx.token_balance(&birds[3].holder_original_ata);
+    ctx.check("holder keeps original after failed late swap", held == 1, format!("balance {held}"));
 
     // recover a claimed mapping → AlreadyClaimed
     let vault_ata1 = get_associated_token_address(&ctx.vault, &birds[1].new_mint);

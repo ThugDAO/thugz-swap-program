@@ -1,11 +1,11 @@
 {
-  "cu_single": 73518,
-  "cu_two_batched": 138036,
-  "fails": 0,
-  "passes": 6,
-  "pool_swapped_after": 9,
-  "pool_swapped_before": 0,
-  "swaps": 5,
-  "tx_bytes_single": 607,
+  "cu_single": null,
+  "cu_two_batched": null,
+  "fails": 5,
+  "passes": 2,
+  "pool_swapped_after": 14,
+  "pool_swapped_before": 14,
+  "swaps": 1,
+  "tx_bytes_single": null,
   "tx_bytes_two_batched": 856
 }

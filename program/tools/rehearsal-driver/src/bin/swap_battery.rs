@@ -169,7 +169,7 @@ fn main() {
                           format!("holder_new={got_new} vault_old={vault_old}"));
                 } else if i == 0 {
                     // measure CU on the first one
-                    let cfg = json!([sig.to_string(), {"encoding":"json","commitment":"confirmed","maxSupportedTransactionVersion":0}]);
+                    let cfg = json!([sig.to_string(), {"encoding":"json","commitment":"confirmed","maxSupportedTransactionVersion":1}]);
                     if let Ok(t) = rpc.send::<Value>(RpcRequest::GetTransaction, cfg) {
                         cu_single = t["meta"]["computeUnitsConsumed"].as_u64();
                     }
@@ -251,7 +251,7 @@ fn main() {
     let mut cu_batched: Option<u64> = None;
     match rpc.send_and_confirm_transaction(&tx) {
         Ok(sig) => {
-            let cfg = json!([sig.to_string(), {"encoding":"json","commitment":"confirmed","maxSupportedTransactionVersion":0}]);
+            let cfg = json!([sig.to_string(), {"encoding":"json","commitment":"confirmed","maxSupportedTransactionVersion":1}]);
             if let Ok(t) = rpc.send::<Value>(RpcRequest::GetTransaction, cfg) {
                 cu_batched = t["meta"]["computeUnitsConsumed"].as_u64();
             }

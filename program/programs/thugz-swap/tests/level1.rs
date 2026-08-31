@@ -1002,3 +1002,137 @@ fn zz_cu_summary() {
     }
     println!("(TEST_PLAN Level 3 measures the binding numbers on Surfpool)");
 }
+
+/// Phase 5 batch (reviews 1+2 converged): the program refuses Token-2022 mints at the
+/// deposit door with LegacyTokenOnly, instead of leaning on the off-chain sweep.
+/// The mint/ATA are fabricated as Token-2022-owned accounts; the constraint fires at
+/// account validation, before any token CPI, so the t22 program itself never runs.
+#[test]
+fn fail_deposit_token_2022_mint() {
+    let mut env = setup();
+    init_pool(&mut env).unwrap();
+    let t22 = anchor_spl::token_2022::ID;
+    let custodian_pk = env.custodian.pubkey();
+
+    // 82-byte SPL mint: authority COption=Some(custodian), supply 1, decimals 0, initialized
+    let new_mint = Pubkey::new_unique();
+    let mut mint_data = vec![0u8; 82];
+    mint_data[0] = 1;
+    mint_data[4..36].copy_from_slice(custodian_pk.as_ref());
+    mint_data[36..44].copy_from_slice(&1u64.to_le_bytes());
+    mint_data[44] = 0;  // decimals
+    mint_data[45] = 1;  // is_initialized
+    env.svm.set_account(new_mint, Account {
+        lamports: 10_000_000, data: mint_data, owner: t22, executable: false, rent_epoch: 0,
+    }).unwrap();
+
+    // 165-byte token account owned by t22: mint, owner=custodian, amount 1, state=1
+    let source_ata = anchor_spl::associated_token::get_associated_token_address_with_program_id(
+        &custodian_pk, &new_mint, &t22);
+    let mut ta = vec![0u8; 165];
+    ta[0..32].copy_from_slice(new_mint.as_ref());
+    ta[32..64].copy_from_slice(custodian_pk.as_ref());
+    ta[64..72].copy_from_slice(&1u64.to_le_bytes());
+    ta[108] = 1; // AccountState::Initialized
+    env.svm.set_account(source_ata, Account {
+        lamports: 10_000_000, data: ta, owner: t22, executable: false, rent_epoch: 0,
+    }).unwrap();
+
+    let old_mint = Pubkey::new_unique();
+    let ix = Instruction::new_with_bytes(
+        thugz_swap::id(),
+        &thugz_swap::instruction::DepositBird { old_mint }.data(),
+        thugz_swap::accounts::DepositBird {
+            admin: env.admin.pubkey(),
+            pool: env.pool,
+            custodian: custodian_pk,
+            new_mint,
+            source_ata,
+            mapping: mapping_pda(&env, &old_mint),
+            vault: env.vault,
+            vault_ata: anchor_spl::associated_token::get_associated_token_address_with_program_id(
+                &env.vault, &new_mint, &t22),
+            treasury: env.treasury,
+            token_program: t22,
+            associated_token_program: ATA_PROGRAM_ID,
+            system_program: system_program::ID,
+        }
+        .to_account_metas(None),
+    );
+    let admin = env.admin.insecure_clone();
+    let custodian = env.custodian.insecure_clone();
+    let blockhash = env.svm.latest_blockhash();
+    let msg = Message::new_with_blockhash(&[ix], Some(&admin.pubkey()), &blockhash);
+    let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[&admin, &custodian]).unwrap();
+    let out = env.svm.send_transaction(tx);
+    env.svm.expire_blockhash();
+    let res = match out {
+        Ok(meta) => Ok(meta.compute_units_consumed),
+        Err(failed) => { for l in &failed.meta.logs { eprintln!("LOG {l}"); } Err(failed.err) }
+    };
+    assert_swap_err(res, SwapError::LegacyTokenOnly);
+}
+
+/// A LISTED bird: modern marketplaces freeze the token in the holder's wallet via a
+/// delegate. A frozen original must NOT swap (the surrender transfer fails, the whole
+/// tx reverts, mapping stays unclaimed) — and after delisting (thaw) the same swap
+/// succeeds. Mirrors the Level 5a "listed bird" scenario end to end.
+#[test]
+fn fail_swap_frozen_listed_original_then_thaw_succeeds() {
+    let mut env = setup();
+    init_pool(&mut env).unwrap();
+    let holder = Keypair::new();
+    env.svm.airdrop(&holder.pubkey(), 10_000_000_000).unwrap();
+
+    // A bird whose ORIGINAL mint carries a freeze authority (real originals carry
+    // their own master-edition PDA; the payer stands in for it here).
+    let payer = env.admin.insecure_clone();
+    let old_mint = CreateMint::new(&mut env.svm, &payer)
+        .decimals(0)
+        .authority(&payer.pubkey())
+        .freeze_authority(&payer.pubkey())
+        .send()
+        .unwrap();
+    let new_mint = CreateMint::new(&mut env.svm, &payer)
+        .decimals(0)
+        .authority(&payer.pubkey())
+        .send()
+        .unwrap();
+    let holder_original_ata = CreateAssociatedTokenAccount::new(&mut env.svm, &payer, &old_mint)
+        .owner(&holder.pubkey()).send().unwrap();
+    let custodian_pk = env.custodian.pubkey();
+    let custodian_remint_ata = CreateAssociatedTokenAccount::new(&mut env.svm, &payer, &new_mint)
+        .owner(&custodian_pk).send().unwrap();
+    MintTo::new(&mut env.svm, &payer, &old_mint, &holder_original_ata, 1).send().unwrap();
+    MintTo::new(&mut env.svm, &payer, &new_mint, &custodian_remint_ata, 1).send().unwrap();
+    let bird = Bird { old_mint, new_mint, holder_original_ata, custodian_remint_ata };
+
+    deposit(&mut env, &bird).unwrap();
+    force_seal(&mut env);
+
+    // LIST: freeze the holder's original in place (marketplace freeze-listing shape).
+    let freeze_ix = anchor_spl::token::spl_token::instruction::freeze_account(
+        &TOKEN_PROGRAM_ID, &bird.holder_original_ata, &bird.old_mint, &payer.pubkey(), &[],
+    ).unwrap();
+    send(&mut env, &[freeze_ix], &payer.pubkey(), &[&payer]).expect("freeze (list)");
+
+    // Swap must fail: SPL TokenError::AccountFrozen (17) from the surrender transfer.
+    let ix = swap_ix(&env, &bird, &holder.pubkey(), None);
+    let err = send(&mut env, &[ix], &holder.pubkey(), &[&holder])
+        .expect_err("swap of a listed (frozen) bird unexpectedly succeeded");
+    assert_eq!(custom_code(&err), Some(17), "expected AccountFrozen, got {err:?}");
+    // Nothing moved, nothing claimed — the holder keeps their listed bird.
+    assert_eq!(token_balance(&env, &bird.holder_original_ata), 1);
+    assert!(!read_mapping(&env, &bird.old_mint).claimed);
+    assert_eq!(read_pool(&env).swapped, 0);
+
+    // DELIST: thaw, then the exact same swap succeeds.
+    let thaw_ix = anchor_spl::token::spl_token::instruction::thaw_account(
+        &TOKEN_PROGRAM_ID, &bird.holder_original_ata, &bird.old_mint, &payer.pubkey(), &[],
+    ).unwrap();
+    send(&mut env, &[thaw_ix], &payer.pubkey(), &[&payer]).expect("thaw (delist)");
+    let ix = swap_ix(&env, &bird, &holder.pubkey(), None);
+    send(&mut env, &[ix], &holder.pubkey(), &[&holder]).expect("swap after delist");
+    assert!(read_mapping(&env, &bird.old_mint).claimed);
+    assert_eq!(token_balance(&env, &get_associated_token_address(&holder.pubkey(), &bird.new_mint)), 1);
+}

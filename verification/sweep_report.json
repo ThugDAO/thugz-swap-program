@@ -1,6 +1,6 @@
 {
  "sweep": "pre-seal three-way injective sweep (appendix \u00a79 / spec \u00a76b + image section)",
- "run_at": "2026-08-27T17:54:58.921225+00:00",
+ "run_at": "2026-08-27T21:36:58.041204+00:00",
  "target_rpc": "http://127.0.0.1:8999",
  "program_id": "CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs",
  "pool": "7gDE9pxPVV7Cfz5hGfvXUs2x6T7xNL7rto2zDJyqaDoP",
@@ -14,17 +14,18 @@
   "recovered": 0,
   "sealed": false,
   "paused": false,
-  "unlock_ts": 1850921565
+  "unlock_ts": 1851541536
  },
  "pairs": 1274,
+ "no_cache": false,
+ "originals_ref_sha256": "e51f570917fab1f45aadd7107b822ddd5f9e0907a30a81f9dbf6f7e3c338f86c",
  "verdict": "PASS \u2014 SEALABLE",
  "failures": [],
  "notes": [
   "Membership: 6a target-chain verified 1274/1274; 6b mainnet DAS lists 2024 members, 0 of them claim-map remints, 0 foreign. On mainnet 6a and the DAS view must agree; a lagging indexer shows up here as a note, not a pass.",
-  "Remint mutability recorded: {'mutable': 1274, 'immutable': 0}",
-  "8: 3 fetched via fallback gateway (txid-addressed, same bytes)"
+  "Remint mutability recorded: {'mutable': 1274, 'immutable': 0}"
  ],
- "elapsed_secs": 111.9,
+ "elapsed_secs": 30.3,
  "rows": [
   {
    "old": "Dt8o4FYofwMY8dYUu4MHJosnWvqoqcEsR24vx6XtnpC3",
@@ -16589,5 +16590,5 @@
    "image_tx": "JS9BlOVb7CDZhu__FHJBxsK8exJiIh9TkWqzgI4k0HQ"
   }
  ],
- "report_sha256": "b74a715d309c4033579a450f8b653aaa9a50227a6d60a7b0763df4d80a84ea47"
+ "report_sha256": "bf2bbf7c537ea45fc7c57a289a99d60843a7d1288c741a34bd69dbacd2e4dc90"
 }

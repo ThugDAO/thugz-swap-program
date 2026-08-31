@@ -33,10 +33,12 @@ pub fn handle_initialize_pool(ctx: Context<InitializePool>, unlock_ts: i64, coll
     // compromised admin cannot set a near-term unlock that makes `recover` live early.
     // (recover only ever sends to the custodian, never admin — this just protects the
     // two-year promise holders are shown.)
-    // Mainnet floor is 1 year (operator sets ~2); under test-keys it drops to 60s so
-    // the devnet driver and seed tool can exercise `recover` without a year's wait.
+    // Mainnet floor IS the promised term: two years, machine-enforced (Phase 5
+    // reviews 1+2 both flagged the earlier 1-year floor as weaker than the public
+    // promise; operator decision 2026-08-27 pinned it). Under test-keys it drops to
+    // 60s so the devnet driver and seed tool can exercise `recover` without waiting.
     #[cfg(not(feature = "test-keys"))]
-    const MIN_LOCK_SECONDS: i64 = 365 * 24 * 60 * 60;
+    const MIN_LOCK_SECONDS: i64 = 2 * 365 * 24 * 60 * 60;
     #[cfg(feature = "test-keys")]
     const MIN_LOCK_SECONDS: i64 = 60;
     let now = Clock::get()?.unix_timestamp;

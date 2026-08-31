@@ -76,7 +76,7 @@ pub struct Mapping {
 // 8 discriminator + 75 = 83  (claimed stays at offset 40 — indexers unaffected)
 ```
 
-`Mapping` at 82 bytes is **0.001462 SOL** each — rent-exempt is `(128 + len) × 3480 × 2`.
+`Mapping` at 83 bytes is **0.001469 SOL** each — rent-exempt is `(128 + len) × 3480 × 2`.
 
 **The rent budget was wrong by roughly 5×** until a Codex review caught it. What was missing:
 `deposit_bird` has to create a **vault ATA per remint**, and no document accounted for those.
@@ -166,6 +166,10 @@ pub enum SwapError {
     #[msg("A mapping for this original already exists")]   MappingExists,
     #[msg("Unlock timestamp must be in the future")]       InvalidUnlockTimestamp,
     #[msg("Arithmetic overflow or underflow")]             Arithmetic,
+    #[msg("This remint was recovered by the custodian after the unlock window")] Recovered,
+    #[msg("Only legacy SPL Token mints are accepted")]      LegacyTokenOnly,
+    // DuplicateAccount above is reserved/unused (Anchor rejects dup mutables natively);
+    // kept in place so later error codes stay stable.
 }
 ```
 

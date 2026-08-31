@@ -1,9 +1,5 @@
-   Compiling thugz-swap v0.1.0 (/home/david/claude/thugbirdz/program/programs/thugz-swap)
-   Compiling devnet-driver v0.1.0 (/home/david/claude/thugbirdz/program/tools/devnet-driver)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 3.73s
-     Running `target/debug/devnet-driver`
-driver: program 2jvGw7yVyui3u15mpgLYXQN3DkjeqFNndA9acGcUdYgv
-driver: pool AUuo3Vg1vdDTA1ucy1dTV4W5CvJKcb9f7YMFR5MSGR1e, treasury DyiKmugBUaBMtFDLdR985KYQUpa1rV7jrf2RBDX7GW8G, EXPECTED = 20
+driver: program GHFYdMK53z5hKgkEaTK7C98Ut6M1REzbzG16yFHHYMgp
+driver: pool FaQobv2JenYS57PsEnbdqhZfpZjHYweE91EofgCtrkYF, treasury CMa32jZGA5uhZrhE29Q3sKB3AYErWEVuSVUVKETvdQaM, EXPECTED = 20
 driver: funded admin / custodian / treasury
 PASS  init with past unlock_ts
 PASS  init by non-ADMIN (front-run guard)
@@ -45,14 +41,14 @@ PASS  swap while paused
 PASS  swap after unpause
 PASS  swap a remint back in
 PASS  recover before unlock_ts
-driver: waiting 783s for unlock_ts…
+driver: waiting 792s for unlock_ts…
 PASS  recover after unlock
 PASS  recovered remint with custodian
-PASS  recover same bird again (vault empty)
+PASS  recover same bird again (recovered flag)
+PASS  swap a recovered bird fails legibly
+PASS  holder keeps original after failed late swap
 PASS  recover a claimed mapping
 PASS  recover cannot touch a deposited original
 PASS  swap still works after unlock (window is a floor, not a cliff)
 
-=== devnet matrix: 40 passed, 0 failed ===
-
-[exited with code 0]
+=== devnet matrix: 42 passed, 0 failed ===

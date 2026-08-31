@@ -364,7 +364,7 @@ the Mapping accounts and vault token accounts created during setup. Nobody is as
 
 | What | Count | Each | Total |
 |---|---|---|---|
-| Mapping accounts (82 B) | 1,274 | 0.001462 | **1.86 SOL** |
+| Mapping accounts (83 B) | 1,274 | 0.001469 | **1.87 SOL** |
 | Vault remint ATAs (165 B) | 1,274 | 0.002039 | **2.60 SOL** |
 | Per swap: vault-original ATA + holder-remint ATA | 2 per swap | 0.002039 | **5.20 SOL** if all 1,274 swap |
 | | | | **9.66 SOL total** |
@@ -380,7 +380,7 @@ larger.
 | Funded by | admin, as a **plain system transfer to the derived `["treasury"]` address** |
 | Before `deposit_bird` | ≥ **4.46 SOL** — 1.86 Mapping + 2.60 vault ATAs |
 | Over the desk's life | **0.00408 SOL × swaps remaining** (two ATAs each) |
-| Suggested opening balance | **5.5 SOL** — covers setup plus ~20% of swaps; top up from the watermark |
+| Suggested opening balance | **computed at Phase 7 from live rent** (rent-reduction gates are pending a ~10x cut; the treasury has no withdraw path, so hardcoded figures over-fund it). At today's rent ~5.5 SOL — covers setup plus ~20% of swaps; top up from the watermark |
 | Watermark | alert below **0.05 SOL** (~12 swaps left); admin refills |
 
 A treasury that runs dry in year two cannot pay `create_idempotent` and every swap fails. That
@@ -703,3 +703,23 @@ Things we would genuinely like challenged:
 
 *Nothing is deployed. Nothing is sunk. If a decision here is wrong, now is the cheap time
 to say so.*
+
+## Ground facts established in Phase 5 (2026-08-27, all chain-verified)
+
+- **Four originals are burned** (supply 0, immutable mint authority — permanently gone):
+  THUG #1370 `58qPqM6A…`, #1400 `23q7NAJt…`, #1407 `BiUXadTs…`, #3074 `9zf3Y9j7…`.
+  Their remints can never be claimed; they stay vaulted until `unlock_ts`, then return to
+  the custodian via `recover` — the intended path for unclaimed birds. True maximum swap
+  count is therefore **1,270**. Desk copy and FAQ must say so; the claim map is NOT
+  amended (it is the redemption contract, and the pairing is burned into Arweave
+  provenance regardless).
+- **Every original's mint authority is immutable** (973 none / 301 own-master-edition /
+  0 foreign, full 1,274 scan). Nobody can ever mint a fresh unit of an original and race
+  the rightful holder to a swap — the theft path is closed by the data, not only the code.
+- **No foreign freeze authority exists on any original** (same scan) — the remint-side
+  freeze argument extends to originals.
+- **Trust framing, stated precisely:** `fix_mapping`/`recover` destinations are pinned to
+  the CUSTODIAN constant, which limits *admin-key* compromise. Admin and custodian are the
+  same operator, so "admin cannot pocket" is a program property, not an operator promise —
+  the desk copy must not oversell it. The unlock floor is now **2 years, machine-enforced**
+  (`MIN_LOCK_SECONDS`), matching the public term.

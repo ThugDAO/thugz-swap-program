@@ -105,7 +105,7 @@ fn main() {
     // ---- --init: initialize pool + fund treasury ----
     if args.iter().any(|a| a == "--init") {
         let now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs() as i64;
-        let unlock_ts = now + 2 * 365 * 24 * 3600;
+        let unlock_ts = now + 2 * 365 * 24 * 3600 + 7 * 24 * 3600; // 2y floor + margin for clock skew
         let ix = Instruction::new_with_bytes(
             program_id,
             &thugz_swap::instruction::InitializePool {

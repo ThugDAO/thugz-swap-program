@@ -24,7 +24,14 @@ pub struct DepositBird<'info> {
     #[account(constraint = custodian.key() == CUSTODIAN @ SwapError::NotCustodian)]
     pub custodian: Signer<'info>,
 
-    #[account(constraint = new_mint.decimals == 0 @ SwapError::WrongRemint)]
+    /// Legacy SPL Token only: every real remint is Tokenkeg-owned (chain-verified),
+    /// and Token-2022 extensions (transfer hooks, permanent delegates) could undermine
+    /// vault custody. The sweep also enforces this off-chain; after Phase 5 reviews
+    /// 1+2 converged here, the program now refuses at the door as well.
+    #[account(
+        constraint = new_mint.decimals == 0 @ SwapError::WrongRemint,
+        constraint = *new_mint.to_account_info().owner == anchor_spl::token::ID @ SwapError::LegacyTokenOnly,
+    )]
     pub new_mint: Box<InterfaceAccount<'info, Mint>>,
 
     /// `new_mint` is READ FROM this account (enforced by the mint constraint), so the

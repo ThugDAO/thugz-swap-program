@@ -89,7 +89,7 @@ covered by `tests/level1.rs` unless marked otherwise.
       SPECIFIC error codes (never "it reverted"), adversarial cases, CU profiling
 - [x] Mutation-tested: removing the sealed gate, the claimed check, or the
       `fix_mapping` destination check each makes its guarding test FAIL
-- [x] Measured CU (Level 1, unoptimized-adjacent): swap first-time **86,661**
+- [x] Measured CU — two contexts, do not conflate (Phase 5 R3-P4): LiteSVM Level 1 swap first-time **86,661**; Surfpool Level 3/4 measured 73,518 single / 133,553 two-batched (swap_battery_report.json). Budget against the higher. Original line: swap first-time **86,661**
       (spec estimate 75–90k ✓), deposit 54k, fix 33k, recover 33k — two batched swaps
       ≈173k confirms "marginal vs the 200k default"; Level 3 (Surfpool) measures the
       binding numbers
@@ -115,7 +115,7 @@ covered by `tests/level1.rs` unless marked otherwise.
 - [x] `recover` idempotent per mapping (`Mapping.recovered` flag, 82→83 B) so a returned
       remint cannot be re-recovered and inflate `Pool.recovered`; `claimed` still stays
       false (spec §4b) so a late holder keeps their original.
-- [x] `unlock_ts` floor: mainnet requires ≥1 year at init (operator sets ~2); 60 s under
+- [x] `unlock_ts` floor: mainnet requires ≥2 years at init (machine-enforced, Phase 5); 60 s under
       test-keys so tests reach `recover`.
 - [x] NFT semantics asserted on-chain: `decimals == 0` on the swap/deposit mints, not
       only via the off-chain sweep.

@@ -26,6 +26,8 @@ pub enum SwapError {
     NotRecoverable,
     #[msg("Custodian constraint violated")]
     NotCustodian,
+    // Reserved, unused: Anchor 1.x rejects duplicate mutable accounts natively.
+    // Kept in place so every later error code stays stable (review 1, P3-3).
     #[msg("Duplicate account supplied")]
     DuplicateAccount,
     #[msg("A mapping for this original already exists")]
@@ -34,4 +36,8 @@ pub enum SwapError {
     InvalidUnlockTimestamp,
     #[msg("Arithmetic overflow or underflow")]
     Arithmetic,
+    #[msg("This remint was recovered by the custodian after the unlock window")]
+    Recovered,
+    #[msg("Only legacy SPL Token mints are accepted")]
+    LegacyTokenOnly,
 }

@@ -244,7 +244,10 @@ toolchain.
 ## Phase 7 — Initialize and fund
 
 1. `initialize_pool` — `expected = 1274`, `unlock_ts` = the agreed timestamp, `sealed = false`.
-2. Fund the **treasury PDA** with the opening balance (**5.5 SOL** — 1.86 Mapping + 2.60 vault ATAs + ~20% of swap ATAs; appendix §2). Not the Pool: a data account cannot pay rent.
+2. Fund the **treasury PDA** with the opening balance — **computed on the day** from live
+   `getMinimumBalanceForRentExemption` (rent-reduction gates are pending a ~10x cut, and the
+   treasury has no withdraw path, so hardcoded figures over-fund it; at today's rent ~5.5 SOL
+   = 1.87 Mapping + 2.60 vault ATAs + ~20% of swap ATAs). Not the Pool: a data account cannot pay rent.
 
 **Gate 7:** pool decoded and read back on-chain. `expected` and `unlock_ts` are correct —
 **this is the last moment either can be changed, and the change is "redeploy everything".**
@@ -275,7 +278,10 @@ size reflects the addition.
 > **Gated on Phase 5.** Do not start until all three reviews are in and every finding is
 > closed. This is the first genuinely irreversible mainnet action at scale.
 >
-> **Re-measure batch size before starting.** If transaction v1 (SIMD-0385) has activated by
+> **Check the v1 feature gate for awareness only — proceed with legacy 4/tx regardless**
+> (operator decision 2026-08-27): sending v1 needs `solana-*` 4.2 (breaks the toolchain
+> pin), has zero-default compute/data footguns, and saves ~10 minutes on a proven run.
+> Original note kept for context: if transaction v1 (SIMD-0385) has activated by
 > then, the limit is 4,096 bytes rather than 1,232 and this run is ~95 transactions instead
 > of ~319. Check the gate: `solana feature status txv1aq4pp281K9um3tnPgkfX8UqtFT6wcVW3hNezGLL`
 

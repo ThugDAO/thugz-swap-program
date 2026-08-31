@@ -4,9 +4,24 @@ A one-way redemption desk on Solana mainnet: a holder of a 2021 thugbirdz origin
 **one transaction** that locks their original in a program vault and hands back its
 reminted twin with recovered art. 1,274 fixed pairs, no pricing, no ordering, no un-swap.
 
-**Status: fully specified, nothing built, nothing deployed.** A final internal review pass
-completed 2026-08-26. The one remaining gate before implementation (Phase 1) is three
-independent external reviews — see `AUDIT_BRIEF.md`.
+**Status: deployed to mainnet, not yet initialized.** Built, reviewed by three independent
+external reviewers (no P1 findings; see `FINAL_REVIEW_PLAN.md`), and deployed 2026-08-31 at
+slot 443163190 (signature `45uY7zKG78vNZAfiWDdXLpcUPHHqYdxWxKoNazymh9cT9QZHZQsWWTnxwK2pevAXNqsUJ4hUTnASmFGpzdThHBuY`).
+The pool is not initialized and no birds are deposited; the desk is not open.
+
+### Verify the deployed bytecode yourself
+
+This repo is the source of the deployed program. The build is reproducible with
+[`solana-verify`](https://github.com/Ellipsis-Labs/solana-verifiable-build) and the pinned
+image (the default image's cargo is too old for the `edition2024` crates):
+
+```
+solana-verify build --base-image solanafoundation/solana-verifiable-build:3.1.10 \
+    --library-name thugz_swap    # run in program/
+solana-verify get-program-hash CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs
+```
+
+Both must print `3e0dd78315910f8c962ba9bab5f97e2cd1fd55252ddeb9f54c59b3b870246027`.
 
 ## Read in this order
 

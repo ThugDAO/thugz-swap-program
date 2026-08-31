@@ -85,7 +85,14 @@ pub fn handle_swap(ctx: Context<Swap>) -> Result<()> {
     require!(ctx.accounts.pool.sealed, SwapError::NotSealed);
     require!(!ctx.accounts.pool.paused, SwapError::Paused);
     require!(!ctx.accounts.mapping.claimed, SwapError::AlreadyClaimed);
+    // A recovered bird fails here with an attributable error instead of deep in the
+    // remint-out transfer CPI (reviews 1+2 converged on this; outcome was already
+    // safe via atomicity, this is pure legibility).
+    require!(!ctx.accounts.mapping.recovered, SwapError::Recovered);
     require!(ctx.accounts.holder_original_ata.amount == 1, SwapError::NotHeld);
+    // Symmetry with deposit/fix/recover: assert the vault actually holds the remint
+    // before any CPI rather than relying on the transfer to fail.
+    require!(ctx.accounts.vault_new_ata.amount == 1, SwapError::NotHeld);
 
     let old_mint_key = ctx.accounts.old_mint.key();
     let new_mint_key = ctx.accounts.new_mint.key();

@@ -39,3 +39,35 @@ mainnet artifact (SAFE TO DEPLOY), real keypairs signing locally only.
   must become "desk needs a top-up" (holder never pays rent in swap).
 
 **GATE 4: ALL CRITERIA MET.**
+
+---
+
+# Phase 3+4 RERUN — post-Gate-5 batch (2026-08-27, same day)
+
+Per the standing rule: the pooled fix batch changed program code, so both phases reran
+against the patched artifact (`fa8b448`+).
+
+| Step | Result |
+|---|---|
+| Level 1 (now 27 tests, incl. new Token-2022 rejection) | 27/27 |
+| Level 2 property suite | 2/2 |
+| Mainnet artifact guard | SAFE TO DEPLOY |
+| Devnet matrix (fresh throwaway `GHFY…`, 42 rows incl. 2 new Recovered-guard rows and the corrected idempotency expectation) | **42/42** |
+| Fork: deploy + init under the NEW 2-year machine-enforced floor | ✅ |
+| Phase 8 rerun (preflight-gated) | 1274/1274, 631s, 0 failures |
+| Deposit rerun + planted bad pair (cantangler #0600) | 319 txs, 166.6s |
+| **Sweep --no-cache catches the bad pair** | ✅ FAIL, exit 1, `2.mapping` missing for #3329's real old |
+| fix_mapping → seal@1273 `Incomplete` → redeposit | ✅ (all re-proven) |
+| Clean sweep | PASS — SEALABLE, 0 failures (cache of same-day-verified hashes; see note) |
+| Seal → battery | 6/6; CU measured 105,023 single / 151,546 two-batched this fork (vs 73,518/133,553 first rehearsal — treat as a RANGE across runtime contexts; every value fits the 200k default, two-batched needs no ComputeBudget ix) |
+| Recover drill (Locked pre-warp, OK post-warp, idempotent, swapped-pair refusal) | ✅ all error codes verbatim |
+
+**Arweave gateway-weather note:** the late-mined image/metadata cohort (Arweave blocks
+~1,986.8k–1,987.6k) 404s erratically at gateways right now; a full `--no-cache` fetch
+during a bad window stalls in fail-closed retries. All content was fetched and
+hash-verified against the claim map earlier the same day (bad-pair sweep run + prior
+full passes); the rerun's clean sweep used that same-day cache. **The mainnet sealing
+run still mandates `--no-cache`** — by then the cohort will have propagated, and if
+weather strikes on sealing day, refusing to seal is the correct outcome.
+
+**GATE 4 (rerun): ALL CRITERIA MET against the patched artifact. GATE 5: CLOSED.**

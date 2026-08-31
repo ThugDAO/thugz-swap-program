@@ -59,7 +59,8 @@ from datetime import datetime, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLAIM_MAP = os.path.join(HERE, "..", "recovered", "remint", "claim_map_all.json")
-ORIGINALS_REF = os.path.join(HERE, "..", "website_build", "deploy", "thugbird_mints.json")
+ORIGINALS_REF = os.path.join(HERE, "thugbird_mints_3318.json")   # vendored (review 1+3)
+ORIGINALS_REF_SHA256 = "e51f570917fab1f45aadd7107b822ddd5f9e0907a30a81f9dbf6f7e3c338f86c"
 ORIGINALS_REF_LEN = 3318
 PROGRAM_ID = "CaWcaw5YfBYQZ1jraTPqiLx2CJc5CwBL8J4Z1DN5neVs"
 PARENT = "5KwhyPToqeGQYmRQjnx3EDSRMnaiCJDMEH3aGT8R3HNc"
@@ -82,8 +83,10 @@ failures, notes = [], []
 # entries cache the frozen JSON fields. Anything absent or mismatched is fetched
 # fail-closed exactly as before.
 CACHE_PATH = os.path.join(HERE, "sweep_immutable_cache.json")
+NO_CACHE = "--no-cache" in sys.argv    # MANDATORY for the mainnet sealing run (review 3):
+                                       # a sealing run must not trust an earlier local run.
 try:
-    _CACHE = json.load(open(CACHE_PATH))
+    _CACHE = {"images": {}, "meta": {}} if NO_CACHE else json.load(open(CACHE_PATH))
 except Exception:
     _CACHE = {"images": {}, "meta": {}}
 def save_cache():
@@ -291,6 +294,8 @@ for n, addr, acc in zip(news, vault_atas, accs):
     if raw is None: continue
     if b58encode(raw[0:32]) != n:
         fail("4.vault", n, "vault ATA mint mismatch")
+    if raw[32:64] != VAULT:
+        fail("4.vault-owner", n, "token account owner field is not the vault PDA")
     amount = struct.unpack_from("<Q", raw, 64)[0]
     if amount != 1:
         fail("4.vault", n, f"vault ATA holds {amount}, expected 1")
@@ -317,7 +322,13 @@ if raw is not None:
 print(f"5. POOL {pool_state}", flush=True)
 
 # ---------- 6. MEMBERSHIP (mainnet DAS; explicit verified only) ----------
-originals_ref = json.load(open(ORIGINALS_REF))
+try:
+    _ref_raw = open(ORIGINALS_REF, "rb").read()
+except FileNotFoundError:
+    sys.exit(f"originals reference list missing: {ORIGINALS_REF} — refusing to run")
+if hashlib.sha256(_ref_raw).hexdigest() != ORIGINALS_REF_SHA256:
+    sys.exit("originals reference list does not match its pinned sha256 — refusing to run")
+originals_ref = json.loads(_ref_raw)
 ref_problems = []
 if len(originals_ref) != ORIGINALS_REF_LEN:
     ref_problems.append(f"reference list has {len(originals_ref)} entries, expected {ORIGINALS_REF_LEN}")
@@ -388,6 +399,10 @@ for m in foreign_members[:10]:
 if len(foreign_members) > 10:
     fail("6b.foreign-member", "…", f"{len(foreign_members) - 10} more foreign members")
 das_verified_news = sum(1 for n in news if members.get(n) is True)
+if "mainnet" in TARGET and (not members or das_verified_news != EXPECTED):
+    fail("6b.das", "enumeration", f"target is mainnet but DAS lists {len(members)} members "
+         f"with {das_verified_news}/{EXPECTED} remints verified — indexer outage or "
+         f"membership gap; the foreign-member check cannot be trusted")
 notes.append(f"Membership: 6a target-chain verified {len(news) - len(unverified_a)}/{EXPECTED}; "
              f"6b mainnet DAS lists {len(members)} members, {das_verified_news} of them "
              f"claim-map remints, {len(foreign_members)} foreign. On mainnet 6a and the DAS "
@@ -564,6 +579,8 @@ report = {
     "claim_map_sha256": claim_sha,
     "pool_state": pool_state,
     "pairs": len(pairs),
+    "no_cache": NO_CACHE,
+    "originals_ref_sha256": ORIGINALS_REF_SHA256,
     "verdict": verdict,
     "failures": failures,
     "notes": notes,

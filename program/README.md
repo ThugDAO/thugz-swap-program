@@ -49,7 +49,7 @@ If the printed ID is anything else, a generated keypair was used: stop and
 | | |
 |---|---|
 | `programs/thugz-swap/src/constants.rs` | Seeds + compiled ground constants (exported to the IDL) |
-| `programs/thugz-swap/src/state.rs` | `Pool` (93 B) and `Mapping` (82 B) |
+| `programs/thugz-swap/src/state.rs` | `Pool` (93 B) and `Mapping` (83 B) |
 | `programs/thugz-swap/src/instructions/` | One file per instruction |
 | `programs/thugz-swap/tests/level1.rs` | TEST_PLAN Level 1 — 25 tests, mutation-checked |
 | `SECURITY_CHECKLIST.md` | Applied rules, high-risk decisions, measured CU |
